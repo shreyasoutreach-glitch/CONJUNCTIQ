@@ -1,0 +1,473 @@
+"""
+AI provider layer — supports IBM Granite (via watsonx.ai), OpenAI-compatible
+endpoints, and a deterministic mock for offline/demo use.
+
+Architecture:
+    get_provider(name) → LLMProvider
+    provider.briefing(audience, event, assessment, evidence, changes, observation, context)
+    provider.chat(question, event, assessment, evidence, changes, observation, context)
+
+The mock always works without credentials.
+Granite requires CONJUNCTIQ_LLM_API_KEY + CONJUNCTIQ_WATSONX_URL + CONJUNCTIQ_WATSONX_PROJECT_ID.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+from typing import Any
+
+from app.schemas import Assessment, UpdateInput
+
+log = logging.getLogger(__name__)
+
+# ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
+_SYSTEM = (
+    "You are ConjunctIQ Analysis Assistant, an expert orbital conjunction analyst. "
+    "You are embedded in ConjunctIQ, a decision-support system. "
+    "You provide grounded, evidence-based analysis of spacecraft conjunction events. "
+    "You speak clearly and precisely. "
+    "You never claim to predict a collision — you assess attention and information quality. "
+    "You always acknowledge uncertainty. "
+    "You never give maneuver recommendations or spacecraft commands. "
+    "When given deterministic assessment data, you explain it clearly. "
+    "When asked conversational questions (e.g. 'hello', 'what can you do'), respond helpfully. "
+    "Keep responses concise and factual unless depth is asked for."
+)
+
+# ─── BASE ─────────────────────────────────────────────────────────────────────
+
+class LLMProvider:
+    name: str = "base"
+
+    def briefing(
+        self,
+        audience: str,
+        event: UpdateInput,
+        assessment: Assessment,
+        evidence: list,
+        changes: dict,
+        observation: dict,
+        context: list[dict],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def chat(
+        self,
+        question: str,
+        event: UpdateInput,
+        assessment: Assessment,
+        evidence: list,
+        changes: dict,
+        observation: dict,
+        context: list[dict],
+    ) -> dict[str, Any]:
+        # Default: reuse briefing with the question injected
+        return self.briefing(
+            audience="analyst",
+            event=event,
+            assessment=assessment,
+            evidence=evidence,
+            changes=changes,
+            observation=observation,
+            context=context,
+        )
+
+
+# ─── CONTEXT BUILDER ─────────────────────────────────────────────────────────
+
+def _build_context_block(
+    audience: str,
+    event: UpdateInput,
+    assessment: Assessment,
+    evidence: list,
+    changes: dict,
+    observation: dict,
+) -> str:
+    """Build a compact text block that grounds the LLM response in real data."""
+    prob_str = (
+        f"{event.collision_probability:.3e}" if event.collision_probability is not None else "not reported"
+    )
+    miss_str = (
+        f"{event.miss_distance_km} km" if event.miss_distance_km is not None else "not reported"
+    )
+    vel_str = (
+        f"{event.relative_velocity_km_s} km/s" if event.relative_velocity_km_s is not None else "not reported"
+    )
+    unc_vals = [
+        v for v in (
+            event.radial_uncertainty_km,
+            event.along_track_uncertainty_km,
+            event.cross_track_uncertainty_km,
+        )
+        if v is not None
+    ]
+    unc_str = f"max {max(unc_vals)} km" if unc_vals else "not reported"
+
+    factor_lines = "\n".join(
+        f"  - {f['factor'].replace('_', ' ')}: +{f['points']} pts — {f['explanation']}"
+        for f in assessment.factors
+    )
+
+    change_status = changes.get("status", "unknown")
+    change_lines = ""
+    for c in changes.get("changes", []):
+        if c.get("significance") == "high":
+            change_lines += f"  - {c['field']}: {c.get('previous')} → {c.get('current')} ({c.get('direction', '')})\n"
+
+    return f"""
+=== CONJUNCTION EVENT CONTEXT ===
+Event ID: {event.event_id}
+Primary Object: {event.primary_object_id}
+Secondary Object: {event.secondary_object_id}
+TCA: {event.time_of_closest_approach.isoformat()}
+Update #{event.update_number}
+Data Source: {event.data_source or "not specified"}
+
+=== DETERMINISTIC ASSESSMENT ===
+Score: {assessment.score}/100
+Classification: {assessment.classification}
+{factor_lines}
+
+=== KEY METRICS ===
+Miss Distance: {miss_str}
+Collision Probability: {prob_str}
+Relative Velocity: {vel_str}
+Max Positional Uncertainty: {unc_str}
+
+=== TREND ANALYSIS ===
+Status: {change_status}
+{change_lines}
+
+=== NEXT OBSERVATION ===
+Priority: {observation.get('priority', 'unknown')}
+Information Gap: {observation.get('information_gap', 'unknown')}
+Suggestion: {observation.get('suggestion', 'none')}
+
+=== AUDIENCE ===
+{audience}
+
+=== DISCLAIMERS ===
+This is decision support only. Not a maneuver recommendation.
+Not a collision probability prediction. Scores are attention weights.
+""".strip()
+
+
+# ─── GRANITE (IBM WATSONX.AI) ─────────────────────────────────────────────────
+
+class GraniteProvider(LLMProvider):
+    """IBM Granite via watsonx.ai ModelInference."""
+
+    name = "granite"
+
+    def __init__(self, api_key: str, url: str, project_id: str, model_id: str):
+        self.api_key = api_key
+        self.url = url
+        self.project_id = project_id
+        self.model_id = model_id
+        self._model = None
+
+    def _get_model(self):
+        if self._model is not None:
+            return self._model
+        try:
+            from ibm_watsonx_ai import Credentials
+            from ibm_watsonx_ai.foundation_models import ModelInference
+
+            creds = Credentials(api_key=self.api_key, url=self.url)
+            self._model = ModelInference(
+                model_id=self.model_id,
+                credentials=creds,
+                project_id=self.project_id,
+                params={
+                    "max_new_tokens": 512,
+                    "temperature": 0.3,
+                    "repetition_penalty": 1.1,
+                },
+            )
+            log.info("Granite model initialised: %s", self.model_id)
+        except Exception as exc:
+            log.error("Failed to init Granite model: %s", exc)
+            raise
+        return self._model
+
+    def _call(self, prompt: str) -> str:
+        model = self._get_model()
+        resp = model.generate_text(prompt=prompt)
+        return resp.strip() if isinstance(resp, str) else str(resp)
+
+    def briefing(self, audience, event, assessment, evidence, changes, observation, context) -> dict:
+        ctx = _build_context_block(audience, event, assessment, evidence, changes, observation)
+        docs = "\n".join(f"[{d['title']}] {d['content']}" for d in context)
+        audience_guide = {
+            "operator": "Provide a concise technical briefing for a spacecraft operator. Focus on what needs attention and why.",
+            "analyst": "Provide a detailed analytical briefing. Include trend analysis, data quality, and recommended information priorities.",
+            "public": "Explain this conjunction event in plain language without jargon. Use analogies where helpful. Do not alarm unnecessarily.",
+        }.get(audience, "Provide a balanced briefing.")
+
+        prompt = f"""{_SYSTEM}
+
+{ctx}
+
+=== KNOWLEDGE CONTEXT ===
+{docs}
+
+=== TASK ===
+{audience_guide}
+
+Write a briefing for the {audience} audience. Structure:
+1. Observed facts (what the data shows)
+2. Assessment interpretation (what the score means)
+3. Trend and context (how this compares to earlier updates)
+4. What to watch next
+
+Keep it grounded in the data above. Do not speculate beyond what the data supports.
+"""
+        try:
+            text = self._call(prompt)
+            return {
+                "status": "granite",
+                "provider": self.model_id,
+                "audience": audience,
+                "content": text,
+                "observed_facts": f"Update {event.update_number}: miss distance {event.miss_distance_km} km, probability {event.collision_probability}.",
+                "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+                "interpretation": text,
+                "uncertainty": assessment.disclaimer,
+                "grounding": [d["title"] for d in context],
+            }
+        except Exception as exc:
+            log.error("Granite briefing failed: %s", exc)
+            return _fallback_briefing(audience, event, assessment, evidence, changes, observation, context, error=str(exc))
+
+    def chat(self, question, event, assessment, evidence, changes, observation, context) -> dict:
+        ctx = _build_context_block("analyst", event, assessment, evidence, changes, observation)
+        docs = "\n".join(f"[{d['title']}] {d['content']}" for d in context)
+
+        prompt = f"""{_SYSTEM}
+
+{ctx}
+
+=== KNOWLEDGE CONTEXT ===
+{docs}
+
+=== USER QUESTION ===
+{question}
+
+Answer the question directly and concisely. If the question is conversational (e.g. greetings), respond naturally but briefly steer toward the conjunction data you have. Stay grounded in the event data above.
+"""
+        try:
+            text = self._call(prompt)
+            return {
+                "status": "granite",
+                "provider": self.model_id,
+                "question": question,
+                "answer": text,
+                "observed_facts": text,
+                "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+                "interpretation": text,
+                "uncertainty": assessment.disclaimer,
+                "grounding": [d["title"] for d in context],
+            }
+        except Exception as exc:
+            log.error("Granite chat failed: %s", exc)
+            fb = _fallback_briefing("analyst", event, assessment, evidence, changes, observation, context, error=str(exc))
+            fb["question"] = question
+            return fb
+
+
+# ─── OPENAI-COMPATIBLE ────────────────────────────────────────────────────────
+
+class OpenAICompatibleProvider(LLMProvider):
+    """Works with any OpenAI-compatible endpoint (OpenAI, Ollama, etc.)."""
+
+    name = "openai_compatible"
+
+    def __init__(self, api_key: str, base_url: str, model: str):
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+
+    def _call(self, messages: list[dict]) -> str:
+        import httpx
+
+        resp = httpx.post(
+            f"{self.base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={"model": self.model, "messages": messages, "max_tokens": 512, "temperature": 0.3},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+
+    def briefing(self, audience, event, assessment, evidence, changes, observation, context) -> dict:
+        ctx = _build_context_block(audience, event, assessment, evidence, changes, observation)
+        docs = "\n".join(f"[{d['title']}] {d['content']}" for d in context)
+        try:
+            text = self._call([
+                {"role": "system", "content": _SYSTEM},
+                {"role": "user", "content": f"{ctx}\n\nKnowledge:\n{docs}\n\nWrite a briefing for audience: {audience}."},
+            ])
+            return {
+                "status": "openai_compatible",
+                "provider": self.model,
+                "audience": audience,
+                "content": text,
+                "observed_facts": f"Update {event.update_number}: miss distance {event.miss_distance_km} km.",
+                "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+                "interpretation": text,
+                "uncertainty": assessment.disclaimer,
+                "grounding": [d["title"] for d in context],
+            }
+        except Exception as exc:
+            log.error("OpenAI-compatible briefing failed: %s", exc)
+            return _fallback_briefing(audience, event, assessment, evidence, changes, observation, context, error=str(exc))
+
+    def chat(self, question, event, assessment, evidence, changes, observation, context) -> dict:
+        ctx = _build_context_block("analyst", event, assessment, evidence, changes, observation)
+        docs = "\n".join(f"[{d['title']}] {d['content']}" for d in context)
+        try:
+            text = self._call([
+                {"role": "system", "content": _SYSTEM},
+                {"role": "user", "content": f"{ctx}\n\nKnowledge:\n{docs}\n\nQuestion: {question}"},
+            ])
+            return {
+                "status": "openai_compatible",
+                "question": question,
+                "answer": text,
+                "observed_facts": text,
+                "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+                "interpretation": text,
+                "uncertainty": assessment.disclaimer,
+                "grounding": [d["title"] for d in context],
+            }
+        except Exception as exc:
+            log.error("OpenAI-compatible chat failed: %s", exc)
+            fb = _fallback_briefing("analyst", event, assessment, evidence, changes, observation, context, error=str(exc))
+            fb["question"] = question
+            return fb
+
+
+# ─── DETERMINISTIC MOCK ───────────────────────────────────────────────────────
+
+def _fallback_briefing(audience, event, assessment, evidence, changes, observation, context, error=None) -> dict:
+    """Deterministic rule-based fallback — always available even without AI credentials."""
+    facts = (
+        f"Update {event.update_number} reports miss distance "
+        f"{event.miss_distance_km if event.miss_distance_km is not None else 'unknown'} km "
+        f"and collision probability "
+        f"{event.collision_probability if event.collision_probability is not None else 'not reported'}."
+    )
+    trend = changes.get("status", "unknown")
+    suggestion = observation.get("suggestion", "")
+    interpretation = (
+        f"Status trend is {trend}. {suggestion} "
+        f"Score {assessment.score}/100 — {assessment.classification}."
+    )
+    result = {
+        "status": "mock",
+        "audience": audience,
+        "observed_facts": facts,
+        "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+        "interpretation": interpretation,
+        "uncertainty": assessment.disclaimer,
+        "grounding": [d["title"] for d in context],
+    }
+    if error:
+        result["ai_error"] = error
+        result["status"] = "mock_fallback"
+    return result
+
+
+class MockProvider(LLMProvider):
+    name = "mock"
+
+    def briefing(self, audience, event, assessment, evidence, changes, observation, context) -> dict:
+        return _fallback_briefing(audience, event, assessment, evidence, changes, observation, context)
+
+    def chat(self, question, event, assessment, evidence, changes, observation, context) -> dict:
+        # Conversational mock
+        q_lower = question.lower().strip()
+        greetings = {"hello", "hi", "hey", "howdy", "what can you do", "help", "who are you"}
+        if any(g in q_lower for g in greetings):
+            answer = (
+                f"I'm ConjunctIQ Analysis Assistant. I can answer questions about conjunction event "
+                f"{event.event_id} ({event.primary_object_id} ↔ {event.secondary_object_id}). "
+                f"Currently assessed: {assessment.classification} (score {assessment.score}/100). "
+                f"Ask me about the miss distance, probability, uncertainty, or trend."
+            )
+        else:
+            fb = _fallback_briefing("analyst", event, assessment, evidence, changes, observation, context)
+            answer = fb["interpretation"]
+        return {
+            "status": "mock",
+            "question": question,
+            "answer": answer,
+            "observed_facts": answer,
+            "calculated_assessment": f"{assessment.classification} (score {assessment.score}/100).",
+            "interpretation": answer,
+            "uncertainty": assessment.disclaimer,
+            "grounding": [d["title"] for d in context],
+        }
+
+
+class UnavailableProvider(LLMProvider):
+    name = "unavailable"
+
+    def briefing(self, *args, **kwargs) -> dict:
+        return {
+            "status": "unavailable",
+            "message": "AI provider is unavailable; deterministic assessment remains available.",
+        }
+
+    def chat(self, question, *args, **kwargs) -> dict:
+        return {
+            "status": "unavailable",
+            "question": question,
+            "answer": "AI provider is unavailable. Deterministic assessment data is available on the Overview tab.",
+            "message": "AI provider is unavailable; deterministic assessment remains available.",
+        }
+
+
+# ─── FACTORY ─────────────────────────────────────────────────────────────────
+
+def get_provider(name: str = "mock") -> LLMProvider:
+    """
+    Build and return the configured LLM provider.
+
+    Provider selection (name arg from settings.llm_provider):
+      "granite"           → IBM Granite via watsonx.ai (requires env vars)
+      "openai_compatible" → Any OpenAI-compatible endpoint
+      "mock"              → Deterministic mock (no credentials needed)
+      anything else       → UnavailableProvider
+    """
+    from app.core.config import settings
+
+    if name == "granite":
+        key = settings.llm_api_key or os.environ.get("CONJUNCTIQ_LLM_API_KEY", "")
+        url = settings.watsonx_url or os.environ.get("CONJUNCTIQ_WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
+        project = settings.watsonx_project_id or os.environ.get("CONJUNCTIQ_WATSONX_PROJECT_ID", "")
+        model = settings.watsonx_model_id or "ibm/granite-3-8b-instruct"
+        if not key or not project:
+            log.warning(
+                "Granite requested but CONJUNCTIQ_LLM_API_KEY or CONJUNCTIQ_WATSONX_PROJECT_ID not set — falling back to mock."
+            )
+            return MockProvider()
+        return GraniteProvider(api_key=key, url=url, project_id=project, model_id=model)
+
+    if name == "openai_compatible":
+        key = settings.llm_api_key or os.environ.get("CONJUNCTIQ_LLM_API_KEY", "")
+        url = os.environ.get("CONJUNCTIQ_OPENAI_BASE_URL", "https://api.openai.com/v1")
+        model = os.environ.get("CONJUNCTIQ_OPENAI_MODEL", "gpt-4o-mini")
+        if not key:
+            log.warning("openai_compatible requested but no API key — falling back to mock.")
+            return MockProvider()
+        return OpenAICompatibleProvider(api_key=key, base_url=url, model=model)
+
+    if name == "mock":
+        return MockProvider()
+
+    return UnavailableProvider()

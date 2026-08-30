@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ConjunctIQ — Orbital Encounter Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   CONJUNCTIQ — ORBITAL ENCOUNTER INTELLIGENCE
+   Design: graphite workstation, amber accent, instrument panels
+   ================================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  /* Graphite base — NOT brown, NOT blue-black */
+  --bg:      #14161a;
+  --bg2:     #1c1f24;
+  --bg3:     #23272e;
+  --panel:   #1e2128;
+  --panel2:  #262a33;
+  --panel3:  #2e333d;
+  --seam:    #333844;
+  --seam2:   #424857;
+  /* Text — warm off-white, not blue */
+  --text:    #d8dce5;
+  --text2:   #8d95a4;
+  --text3:   #555e6e;
+  --text4:   #3a4050;
+  /* Instrument surfaces — light panels for readouts */
+  --inst:    #e8eaed;
+  --inst2:   #c8ccd4;
+  /* Amber accent — ONLY for active state / highlight */
+  --amber:   #e89a14;
+  --amber2:  #f5b840;
+  --amber-lo:#221808;
+  /* Information colors */
+  --cyan:    #5bc4d8;
+  --cyan2:   #38a8c0;
+  --cyan-lo: #0a1e24;
+  /* Semantic */
+  --green:   #52c07a;
+  --green-lo:#0a1c10;
+  --yellow:  #d4b020;
+  --yellow-lo:#1e1800;
+  --orange:  #d4721a;
+  --orange-lo:#1e0e00;
+  --red:     #cc4444;
+  --red2:    #e86060;
+  --red-lo:  #1e0808;
+  /* LEDs */
+  --led-on:  #3ae87a;
+  --led-warn:#e8a020;
+  --led-off: #2a2e38;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{cursor:pointer;font-family:inherit;font-size:inherit;color:inherit}
+input,textarea{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--seam2)}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ================================================================
+   LAYOUT — full viewport workstation grid
+   ================================================================ */
+#app{
+  display:grid;
+  grid-template-rows:48px 1fr 28px;
+  height:100vh;width:100vw;
+  overflow:hidden;
+}
+/* Main area: sidebar + content */
+.main-body{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  overflow:hidden;min-height:0;
+}
+/* Content: top panel + tabs area */
+.content{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+
+/* ================================================================
+   HEADER — instrument panel top bar
+   ================================================================ */
+.hdr{
+  display:flex;align-items:stretch;
+  background:var(--panel);
+  border-bottom:1px solid var(--seam2);
+  position:relative;overflow:hidden;
+}
+/* Single amber stripe across top */
+.hdr::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 5%,var(--amber) 25%,var(--amber2) 50%,var(--amber) 75%,transparent 95%);
+  opacity:.5;
+}
+.hdr-brand{
+  display:flex;align-items:center;gap:10px;
+  padding:0 18px;min-width:260px;
+  border-right:1px solid var(--seam);
+  background:var(--panel2);
+  flex-shrink:0;
+}
+.hdr-logo{
+  width:28px;height:28px;flex-shrink:0;
+  border:1.5px solid var(--amber);
+  display:flex;align-items:center;justify-content:center;
+  background:var(--amber-lo);
+}
+.hdr-logo svg{width:16px;height:16px}
+.hdr-wordmark{display:flex;flex-direction:column;gap:0}
+.hdr-name{
+  font-size:.92rem;font-weight:700;letter-spacing:.1em;
+  color:var(--inst);text-transform:uppercase;line-height:1;
+}
+.hdr-name em{color:var(--amber);font-style:normal}
+.hdr-tagline{font-size:.55rem;color:var(--text3);letter-spacing:.18em;text-transform:uppercase}
+.hdr-cells{display:flex;align-items:stretch;flex:1;overflow:hidden}
+.hdr-cell{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 14px;border-right:1px solid var(--seam);min-width:0;gap:1px;
+}
+.hdr-cell-lbl{font-size:.52rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.hdr-cell-val{font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:500;color:var(--text);white-space:nowrap}
+.led-row{display:flex;align-items:center;gap:5px}
+.led{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.led.on{background:var(--led-on);box-shadow:0 0 5px var(--led-on)}
+.led.warn{background:var(--led-warn);box-shadow:0 0 5px var(--led-warn)}
+.led.off{background:var(--led-off)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.led.pulse{animation:blink 1.4s ease-in-out infinite}
+.hdr-right{display:flex;align-items:center;margin-left:auto;border-left:1px solid var(--seam)}
+.demo-btn{
+  height:100%;padding:0 16px;
+  background:transparent;border:none;
+  font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);
+  transition:all .15s;
+}
+.demo-btn:hover{background:var(--amber-lo);color:var(--amber2)}
+.demo-btn.on{background:var(--amber-lo);color:var(--amber);border-left:2px solid var(--amber)}
+
+/* ================================================================
+   SIDEBAR — operational event console
+   ================================================================ */
+.sidebar{
+  display:flex;flex-direction:column;
+  background:var(--panel);
+  border-right:1px solid var(--seam2);
+  overflow:hidden;
+}
+.sidebar-hdr{
+  padding:10px 14px 8px;border-bottom:1px solid var(--seam2);
+  flex-shrink:0;background:var(--panel2);
+  display:flex;align-items:baseline;justify-content:space-between;
+}
+.sidebar-title{font-size:.6rem;font-weight:700;letter-spacing:.18em;color:var(--text3);text-transform:uppercase}
+.sidebar-count{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--amber)}
+.event-list{flex:1;overflow-y:auto;overflow-x:hidden}
+/* Event slot */
+.ev-slot{
+  padding:11px 14px 10px;
+  border-bottom:1px solid var(--seam);
+  cursor:pointer;position:relative;
+  transition:background .1s;
+  border-left:3px solid transparent;
+}
+.ev-slot:hover{background:var(--panel2)}
+.ev-slot.sel{background:var(--bg3);border-left-color:var(--amber)}
+.ev-slot-stripe{position:absolute;left:0;top:0;bottom:0;width:3px}
+.ev-slot-stripe.CRITICAL{background:var(--red2)}
+.ev-slot-stripe.HIGH{background:var(--orange)}
+.ev-slot-stripe.MONITOR{background:var(--yellow)}
+.ev-slot-stripe.LOW{background:var(--green)}
+.ev-slot-id{font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:500;color:var(--text);margin-bottom:1px}
+.ev-slot-objs{font-size:.7rem;color:var(--text3);margin-bottom:6px;line-height:1.3}
+.ev-slot-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ev-slot-tca{font-size:.65rem;color:var(--text3);margin-top:3px}
+.ev-slot-score{font-size:.62rem;color:var(--text3);margin-top:1px}
+
+/* Badges */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:1px 6px;font-size:.57rem;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
+}
+.badge-CRITICAL{background:var(--red-lo);color:var(--red2);border:1px solid rgba(204,68,68,.3)}
+.badge-HIGH{background:var(--orange-lo);color:#e8962a;border:1px solid rgba(212,114,26,.3)}
+.badge-MONITOR{background:var(--yellow-lo);color:#d4c030;border:1px solid rgba(212,176,32,.3)}
+.badge-LOW{background:var(--green-lo);color:var(--green);border:1px solid rgba(82,192,122,.3)}
+.badge-esc{background:rgba(204,68,68,.08);color:var(--red2);border:1px solid rgba(204,68,68,.2);font-size:.54rem}
+.badge-imp{background:rgba(82,192,122,.08);color:var(--green);border:1px solid rgba(82,192,122,.2);font-size:.54rem}
+.badge-stable{background:rgba(91,196,216,.08);color:var(--cyan);border:1px solid rgba(91,196,216,.2);font-size:.54rem}
+.badge-real{background:rgba(91,196,216,.08);color:var(--cyan);border:1px solid rgba(91,196,216,.3);font-size:.54rem}
+.badge-demo{background:rgba(212,176,32,.08);color:var(--yellow);border:1px solid rgba(212,176,32,.2);font-size:.54rem}
+
+/* ================================================================
+   STAT STRIP
+   ================================================================ */
+.stat-strip{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  border-bottom:1px solid var(--seam2);flex-shrink:0;
+  background:var(--panel2);
+}
+.stat-cell{
+  padding:7px 14px;border-right:1px solid var(--seam);
+  display:flex;flex-direction:column;gap:1px;
+}
+.stat-cell:last-child{border-right:none}
+.stat-lbl{font-size:.56rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.stat-num{font-family:'IBM Plex Mono',monospace;font-size:1.45rem;font-weight:700;line-height:1}
+.c-total{color:var(--cyan)}
+.c-crit{color:var(--red2)}
+.c-high{color:var(--orange)}
+.c-mon{color:var(--yellow)}
+.c-esc{color:var(--amber)}
+
+/* ================================================================
+   ORBITAL VISUALIZATION HERO
+   ================================================================ */
+.orbital-hero{
+  flex-shrink:0;position:relative;
+  background:#0a0c10;
+  border-bottom:1px solid var(--seam2);
+  overflow:hidden;
+}
+.orbital-svg{display:block;width:100%;height:100%}
+.orbital-overlay{
+  position:absolute;inset:0;
+  pointer-events:none;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:10px 14px;
+}
+.orb-top{display:flex;align-items:flex-start;justify-content:space-between}
+.orb-label{
+  font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.25);
+}
+.orb-label.real{color:rgba(91,196,216,.5)}
+.orb-bottom{display:flex;align-items:flex-end;justify-content:space-between}
+.orb-legend{display:flex;gap:14px}
+.orb-leg-item{display:flex;align-items:center;gap:5px}
+.orb-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.orb-leg-lbl{font-size:.58rem;font-family:'IBM Plex Mono',monospace;color:rgba(200,210,220,.5)}
+.orb-event-info{text-align:right}
+.orb-ev-id{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:rgba(200,210,220,.5)}
+.orb-ev-tca{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:rgba(232,154,20,.7);margin-top:1px}
+
+/* ================================================================
+   DETAIL — tabs + content
+   ================================================================ */
+.detail{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.detail-hdr{
+  padding:11px 18px 10px;border-bottom:1px solid var(--seam2);
+  background:var(--panel);flex-shrink:0;
+}
+.detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:7px}
+.detail-id{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text2);margin-bottom:2px}
+.detail-objects{font-size:1.15rem;font-weight:700;color:var(--inst);line-height:1.2}
+.detail-badges{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+.detail-summary{font-size:.8rem;color:var(--text2);line-height:1.6;max-width:720px;margin-top:7px;padding-top:7px;border-top:1px solid var(--seam)}
+.detail-summary strong{color:var(--text)}
+
+/* Metrics bar */
+.metrics-strip{
+  display:flex;border-bottom:1px solid var(--seam2);
+  background:var(--bg3);flex-shrink:0;overflow-x:auto;
+}
+.metric{
+  padding:7px 14px;border-right:1px solid var(--seam);
+  display:flex;flex-direction:column;gap:1px;min-width:100px;flex-shrink:0;
+}
+.metric-lbl{font-size:.56rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.metric-val{font-family:'IBM Plex Mono',monospace;font-size:.88rem;font-weight:500;color:var(--inst)}
+.metric-val.null{color:var(--text3);font-style:italic;font-family:'Inter',sans-serif;font-size:.75rem}
+.metric-unit{font-size:.58rem;color:var(--text3)}
+
+/* Tabs */
+.tabs{
+  display:flex;border-bottom:1px solid var(--seam2);
+  background:var(--panel);flex-shrink:0;overflow-x:auto;
+}
+.tab{
+  padding:8px 15px;font-size:.65rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);background:transparent;border:none;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:color .1s,border-color .1s;
+}
+.tab:hover{color:var(--text2)}
+.tab.on{color:var(--amber2);border-bottom-color:var(--amber)}
+
+/* Tab body */
+.tab-body{flex:1;overflow-y:auto;padding:18px;min-height:0}
+
+/* Section */
+.sec{margin-bottom:22px}
+.sec:last-child{margin-bottom:0}
+.sec-title{
+  font-size:.6rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--seam)}
+
+/* Two-column grid */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:960px){.two-col{grid-template-columns:1fr}}
+
+/* ================================================================
+   INSTRUMENT PANEL / MODULE
+   ================================================================ */
+.module{
+  background:var(--panel);border:1px solid var(--seam);
+  border-top:2px solid var(--seam2);
+  position:relative;
+}
+.module.accent{border-top-color:var(--amber)}
+.module.cyan{border-top-color:var(--cyan2)}
+.module.critical{border-top-color:var(--red2)}
+.module-hdr{
+  padding:7px 12px;border-bottom:1px solid var(--seam);
+  background:var(--panel2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.module-title{font-size:.58rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3)}
+.module-body{padding:12px}
+/* Corner marks for tactile feel */
+.module::before,.module::after{
+  content:'·';position:absolute;font-size:10px;color:var(--seam2);line-height:1;
+}
+.module::before{top:2px;left:5px}
+.module::after{top:2px;right:5px}
+
+/* ================================================================
+   SCORE / ASSESSMENT
+   ================================================================ */
+.score-wrap{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.ring-cont{position:relative;width:76px;height:76px;flex-shrink:0}
+.ring-cont svg{transform:rotate(-90deg)}
+.ring-num{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;
+}
+.score-meta{display:flex;flex-direction:column;gap:4px}
+.score-cls{font-size:.9rem;font-weight:700}
+.score-cls.CRITICAL{color:var(--red2)}
+.score-cls.HIGH{color:var(--orange)}
+.score-cls.MONITOR{color:var(--yellow)}
+.score-cls.LOW{color:var(--green)}
+.score-note{font-size:.68rem;color:var(--text3);line-height:1.5;max-width:220px}
+.score-chip{
+  font-size:.6rem;color:var(--text3);padding:2px 7px;
+  background:var(--amber-lo);border:1px solid rgba(232,154,20,.2);
+  display:inline-block;margin-top:2px;
+}
+/* Factor bars */
+.factors{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.frow{display:flex;align-items:center;gap:7px}
+.fname{font-size:.68rem;color:var(--text2);min-width:155px;flex-shrink:0}
+.fbar-bg{flex:1;height:5px;background:var(--bg3);overflow:hidden}
+.fbar{height:100%;transition:width .5s}
+.fpts{font-size:.64rem;font-family:'IBM Plex Mono',monospace;color:var(--text2);min-width:28px;text-align:right}
+
+/* ================================================================
+   KV TABLE
+   ================================================================ */
+.kv{width:100%;border-collapse:collapse}
+.kv tr{border-bottom:1px solid var(--seam)}
+.kv tr:last-child{border-bottom:none}
+.kv td{padding:5px 0;vertical-align:top}
+.kv td:first-child{font-size:.69rem;color:var(--text2);padding-right:12px;width:44%}
+.kv td:last-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;font-weight:500;color:var(--inst)}
+.kv .null{color:var(--text3);font-style:italic;font-family:'Inter',sans-serif;font-weight:400;font-size:.69rem}
+.kv-note{font-size:.63rem;color:var(--text3);font-family:'Inter',sans-serif;margin-top:1px}
+
+/* ================================================================
+   EVIDENCE
+   ================================================================ */
+.ev-evidence{display:flex;flex-direction:column;gap:9px}
+.ev-item{
+  background:var(--panel);border:1px solid var(--seam);
+  border-left:3px solid var(--seam2);padding:11px 13px;
+}
+.ev-item.high{border-left-color:var(--red2)}
+.ev-item.medium{border-left-color:var(--yellow)}
+.ev-item.low{border-left-color:var(--green)}
+.ev-item-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:7px;margin-bottom:7px}
+.ev-factor-name{font-size:.82rem;font-weight:600;color:var(--inst)}
+.ev-imp{font-size:.56rem;font-weight:700;padding:2px 6px;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
+.ev-imp.high{background:var(--red-lo);color:var(--red2);border:1px solid rgba(204,68,68,.3)}
+.ev-imp.medium{background:var(--yellow-lo);color:var(--yellow);border:1px solid rgba(212,176,32,.3)}
+.ev-imp.low{background:var(--green-lo);color:var(--green);border:1px solid rgba(82,192,122,.3)}
+.ev-compare{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:7px}
+.ev-col label{font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:2px}
+.ev-col .val{font-family:'IBM Plex Mono',monospace;font-size:.88rem;font-weight:500;color:var(--inst)}
+.ev-col .val.dim{color:var(--text2);font-size:.78rem}
+.ev-bar-bg{height:3px;background:var(--bg3);overflow:hidden;margin-bottom:6px}
+.ev-bar-fill{height:100%}
+.ev-expl{font-size:.74rem;color:var(--text2);line-height:1.65;padding-top:6px;border-top:1px solid var(--seam)}
+
+/* ================================================================
+   CHANGES
+   ================================================================ */
+.status-banner{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 15px;margin-bottom:16px;border:1px solid var(--seam);
+}
+.status-banner.escalating{background:rgba(204,68,68,.05);border-color:rgba(204,68,68,.25)}
+.status-banner.improving{background:rgba(82,192,122,.05);border-color:rgba(82,192,122,.25)}
+.status-banner.stable{background:rgba(91,196,216,.05);border-color:rgba(91,196,216,.2)}
+.status-banner.insufficient{background:var(--panel);border-color:var(--seam)}
+.status-icon{font-size:1.4rem;flex-shrink:0;line-height:1}
+.status-text{font-size:.95rem;font-weight:700}
+.status-text.escalating{color:var(--red2)}
+.status-text.improving{color:var(--green)}
+.status-text.stable{color:var(--cyan)}
+.status-text.insufficient{color:var(--text2)}
+.status-sub{font-size:.74rem;color:var(--text2);margin-top:2px}
+.change-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.change-card{background:var(--panel);border:1px solid var(--seam);padding:11px 13px}
+.change-field{font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.change-ba{display:flex;align-items:center;gap:9px}
+.change-val{font-family:'IBM Plex Mono',monospace;font-size:.86rem;font-weight:500}
+.change-val.dim{color:var(--text3)}
+.change-val.worse{color:var(--red2)}
+.change-val.better{color:var(--green)}
+.change-arr{font-size:.95rem;color:var(--text3);flex-shrink:0}
+.change-arr.worse{color:var(--red2)}
+.change-arr.better{color:var(--green)}
+.change-sig{margin-top:5px;display:flex;gap:6px;align-items:center}
+.change-pct{font-size:.68rem;font-family:'IBM Plex Mono',monospace}
+.change-pct.worse{color:var(--red2)}
+.change-pct.better{color:var(--green)}
+.sig-tag{font-size:.56rem;padding:1px 5px;font-weight:600;letter-spacing:.06em}
+.sig-tag.high{background:rgba(212,114,26,.12);color:var(--orange);border:1px solid rgba(212,114,26,.2)}
+.sig-tag.low{background:var(--bg3);color:var(--text3);border:1px solid var(--seam)}
+
+/* ================================================================
+   OBSERVATION
+   ================================================================ */
+.obs-panel{
+  background:var(--panel);border:1px solid var(--seam);
+  border-top:2px solid var(--amber);padding:18px 20px;margin-bottom:16px;
+}
+.obs-question{font-size:.95rem;font-weight:700;color:var(--inst);margin-bottom:7px}
+.obs-pri-row{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.obs-pri-badge{padding:3px 11px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.obs-pri-badge.high{background:var(--red-lo);color:var(--red2);border:1px solid rgba(204,68,68,.3)}
+.obs-pri-badge.medium{background:var(--yellow-lo);color:var(--yellow);border:1px solid rgba(212,176,32,.3)}
+.obs-gap{font-size:.88rem;font-weight:600;color:var(--inst);text-transform:capitalize;margin-bottom:7px}
+.obs-why{font-size:.8rem;color:var(--text2);line-height:1.65;margin-bottom:12px}
+.obs-suggestion{
+  border-left:3px solid var(--amber);padding:8px 13px;
+  background:var(--amber-lo);font-size:.82rem;color:var(--text);line-height:1.6;margin-bottom:9px;
+}
+.obs-disc{font-size:.68rem;color:var(--text3);padding:6px 9px;background:var(--bg3);border:1px solid var(--seam);margin-top:8px;line-height:1.5}
+
+/* ================================================================
+   SIMULATE
+   ================================================================ */
+.sim-banner{background:var(--panel);border:1px solid var(--seam);padding:13px 16px;margin-bottom:16px}
+.sim-q{font-size:.9rem;font-weight:700;color:var(--inst);margin-bottom:3px}
+.sim-sub{font-size:.76rem;color:var(--text2);line-height:1.5}
+.sim-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:13px}
+.sim-field label{display:block;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+.sim-field input{
+  width:100%;background:var(--bg3);border:1px solid var(--seam);
+  color:var(--inst);padding:7px 9px;
+  font-family:'IBM Plex Mono',monospace;font-size:.8rem;transition:border-color .15s;
+}
+.sim-field input:focus{border-color:var(--amber);outline:none}
+.sim-field input::placeholder{color:var(--text3)}
+.btn{
+  padding:7px 18px;border:none;font-size:.73rem;font-weight:700;letter-spacing:.05em;
+  transition:opacity .15s,background .15s;cursor:pointer;
+}
+.btn-primary{background:var(--amber);color:#100c00}
+.btn-primary:hover{background:var(--amber2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--seam2)}
+.btn-secondary:hover{background:var(--panel3)}
+.sim-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;margin-top:12px}
+.sim-col-lbl{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.sim-arrow{display:flex;align-items:center;justify-content:center;padding-top:28px;font-size:1.5rem;color:var(--text3)}
+.sim-disc{font-size:.68rem;color:var(--text3);margin-top:11px;line-height:1.5;font-style:italic}
+.sim-factors{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.sim-factor-tag{font-size:.6rem;padding:2px 7px;background:var(--amber-lo);border:1px solid rgba(232,154,20,.2);color:var(--amber)}
+
+/* ================================================================
+   BRIEFING
+   ================================================================ */
+.aud-row{display:flex;gap:5px;margin-bottom:16px}
+.aud-btn{
+  padding:5px 14px;border:1px solid var(--seam);background:transparent;color:var(--text2);
+  font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;transition:all .12s;
+}
+.aud-btn:hover{border-color:var(--seam2);color:var(--text)}
+.aud-btn.on{border-color:var(--amber);background:var(--amber-lo);color:var(--amber2)}
+.briefing-console{background:var(--panel);border:1px solid var(--seam);border-top:2px solid var(--amber)}
+.brief-hdr{
+  padding:9px 14px;border-bottom:1px solid var(--seam);
+  background:var(--panel2);display:flex;align-items:center;justify-content:space-between;
+}
+.brief-hdr-title{font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:500;color:var(--amber2);letter-spacing:.08em}
+.ai-row{display:flex;align-items:center;gap:5px}
+.ai-dot{width:5px;height:5px;border-radius:50%}
+.ai-dot.on{background:var(--led-on);box-shadow:0 0 4px var(--led-on)}
+.ai-dot.warn{background:var(--led-warn);box-shadow:0 0 4px var(--led-warn)}
+.ai-lbl{font-size:.58rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase}
+.brief-mock-bar{margin:10px 14px 0;padding:5px 9px;background:var(--amber-lo);border:1px solid rgba(232,154,20,.2);font-size:.68rem;color:var(--amber)}
+.brief-body{padding:13px 14px}
+.brief-sec{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--seam)}
+.brief-sec:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.brief-sec-title{font-size:.58rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.brief-sec-body{font-size:.82rem;color:var(--text);line-height:1.75}
+.g-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.g-tag{font-size:.63rem;padding:1px 7px;background:var(--bg3);border:1px solid var(--seam);color:var(--text2)}
+
+/* ================================================================
+   NASA PANEL
+   ================================================================ */
+.nasa-panel{background:var(--panel);border:1px solid var(--seam);border-top:2px solid var(--cyan2)}
+.nasa-hdr{padding:7px 13px;border-bottom:1px solid var(--seam);background:var(--cyan-lo);display:flex;align-items:center;justify-content:space-between}
+.nasa-hdr-title{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.nasa-real{font-size:.56rem;padding:1px 7px;background:rgba(91,196,216,.12);border:1px solid rgba(91,196,216,.3);color:var(--cyan);letter-spacing:.08em}
+.nasa-row{display:grid;grid-template-columns:1.4fr 1fr 1fr .8fr .8fr;padding:6px 13px;border-bottom:1px solid var(--seam);align-items:center;font-size:.7rem}
+.nasa-row:last-child{border-bottom:none}
+.nasa-row:hover{background:var(--panel2)}
+.nasa-hdr-row{font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);background:var(--bg3)}
+.nasa-des{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--inst)}
+.nasa-mono{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--text2)}
+.nasa-disc{padding:7px 13px;font-size:.64rem;color:var(--text3);background:var(--bg3);border-top:1px solid var(--seam);line-height:1.5}
+
+/* ================================================================
+   CHAT
+   ================================================================ */
+.chat-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.chat-history{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:11px;padding:14px 18px}
+.chat-msg{display:flex;flex-direction:column;gap:3px;max-width:82%}
+.chat-msg.user{align-self:flex-end}
+.chat-msg.assistant{align-self:flex-start}
+.chat-who{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+.chat-msg.user .chat-who{color:var(--amber);text-align:right}
+.chat-bubble{padding:8px 12px;font-size:.8rem;line-height:1.68}
+.chat-msg.user .chat-bubble{background:var(--amber-lo);border:1px solid rgba(232,154,20,.2);color:var(--inst)}
+.chat-msg.assistant .chat-bubble{background:var(--panel);border:1px solid var(--seam);color:var(--text)}
+.chat-srcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chat-src{font-size:.58rem;padding:1px 5px;background:var(--bg3);border:1px solid var(--seam);color:var(--text3)}
+.chat-suggestions{padding:9px 18px;border-top:1px solid var(--seam);display:flex;flex-wrap:wrap;gap:5px;background:var(--panel);flex-shrink:0}
+.chat-sug{padding:4px 10px;border:1px solid var(--seam);background:transparent;font-size:.66rem;color:var(--text2);transition:all .12s}
+.chat-sug:hover{border-color:var(--amber);color:var(--amber2);background:var(--amber-lo)}
+.chat-input-row{display:flex;gap:7px;padding:9px 18px;border-top:1px solid var(--seam2);background:var(--panel);flex-shrink:0}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--seam);color:var(--inst);padding:7px 11px;font-size:.8rem;transition:border-color .15s}
+.chat-input:focus{border-color:var(--amber);outline:none}
+.chat-input::placeholder{color:var(--text3)}
+.chat-send{padding:7px 16px;background:var(--amber);color:#100c00;border:none;font-size:.74rem;font-weight:700;transition:background .15s,opacity .15s}
+.chat-send:hover{background:var(--amber2)}
+.chat-send:disabled{opacity:.4;cursor:not-allowed}
+
+/* ================================================================
+   LOADING / ERROR / EMPTY
+   ================================================================ */
+.loading{display:flex;align-items:center;gap:9px;padding:18px;color:var(--text2);font-size:.78rem}
+.spinner{width:13px;height:13px;border:2px solid var(--seam);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-box{background:rgba(204,68,68,.05);border:1px solid rgba(204,68,68,.25);padding:12px 13px;color:var(--red2);font-size:.78rem;line-height:1.5}
+.err-title{font-weight:700;margin-bottom:3px}
+.err-offline{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:40px 20px;text-align:center;flex:1;
+}
+.err-offline-title{font-size:1rem;font-weight:700;color:var(--text);letter-spacing:.04em}
+.err-offline-sub{font-size:.8rem;color:var(--text2);max-width:340px;line-height:1.6}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 18px;gap:7px;text-align:center}
+.empty-title{font-size:.8rem;font-weight:600;color:var(--text2);letter-spacing:.07em}
+.empty-sub{font-size:.74rem;color:var(--text3);max-width:280px;line-height:1.6}
+
+/* ================================================================
+   DEMO BAR
+   ================================================================ */
+.demo-bar{
+  background:rgba(232,154,20,.06);border-bottom:1px solid rgba(232,154,20,.2);
+  padding:5px 18px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.demo-steps{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.demo-step{font-size:.63rem;color:rgba(232,154,20,.45);padding:2px 6px}
+.demo-step.cur{background:rgba(232,154,20,.12);color:var(--amber2);border:1px solid rgba(232,154,20,.25);font-weight:600}
+.demo-arr{color:rgba(232,154,20,.25);font-size:.68rem;padding:0 1px}
+.demo-close{background:none;border:1px solid rgba(232,154,20,.25);color:rgba(232,154,20,.5);padding:2px 8px;font-size:.62rem}
+.demo-close:hover{border-color:rgba(232,154,20,.6);color:var(--amber2)}
+
+/* ================================================================
+   INLINE DISCLAIMER
+   ================================================================ */
+.inline-disc{font-size:.65rem;color:var(--text3);padding:6px 9px;border-left:2px solid var(--seam2);margin-top:8px;line-height:1.5}
+
+/* ================================================================
+   FOOTER
+   ================================================================ */
+.footer{
+  border-top:1px solid var(--seam2);padding:0 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--panel);flex-shrink:0;
+}
+.footer-l,.footer-r,.footer-m{font-size:.56rem;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+
+/* ================================================================
+   WELCOME SCREEN
+   ================================================================ */
+.welcome{flex:1;overflow-y:auto;padding:36px 44px;display:flex;flex-direction:column;gap:24px}
+.welcome-h1{font-size:1.9rem;font-weight:700;color:var(--inst);line-height:1.2;letter-spacing:-.01em}
+.welcome-h1 em{color:var(--amber);font-style:normal}
+.welcome-p{font-size:.88rem;color:var(--text2);max-width:540px;line-height:1.75}
+.welcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.wcard{background:var(--panel);border:1px solid var(--seam);border-top:2px solid var(--seam2);padding:14px 16px}
+.wcard-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--amber);margin-bottom:2px}
+.wcard-lbl{font-size:.76rem;font-weight:600;color:var(--inst2);margin-bottom:4px}
+.wcard-desc{font-size:.73rem;color:var(--text2);line-height:1.6}
+.flow-bar{background:var(--panel);border:1px solid var(--seam);padding:12px 16px}
+.flow-title{font-size:.6rem;font-weight:600;letter-spacing:.14em;color:var(--amber);text-transform:uppercase;margin-bottom:8px}
+.flow-steps{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.flow-step{background:var(--panel2);border:1px solid var(--seam);padding:3px 9px;font-size:.68rem;color:var(--text2)}
+.flow-step.hl{color:var(--amber2);border-color:var(--seam2);background:var(--amber-lo)}
+.flow-arr{color:var(--text3);font-size:.72rem;padding:0 1px}
+.disc-bar{background:var(--amber-lo);border:1px solid rgba(232,154,20,.2);padding:9px 14px;font-size:.73rem;color:var(--text2);line-height:1.6}
+.disc-bar strong{color:var(--amber)}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+@media(max-width:1100px){.main-body{grid-template-columns:240px 1fr}}
+@media(max-width:900px){
+  .main-body{grid-template-columns:200px 1fr}
+  .two-col{grid-template-columns:1fr}
+  .change-grid{grid-template-columns:1fr}
+  .sim-compare{grid-template-columns:1fr;gap:8px}
+  .sim-arrow{display:none}
+  .stat-strip{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:680px){.main-body{grid-template-columns:1fr}.sidebar{display:none}}
+
+/* ================================================================
+   MISSION CONSOLE SKIN — aligned with the provided reference board
+   ================================================================ */
+:root{
+  --bg:#0a0907;--bg2:#12100d;--bg3:#1a1610;
+  --panel:#14110d;--panel2:#1c1710;--panel3:#282016;
+  --seam:#3a2b1a;--seam2:#5a4228;
+  --text:#e5d7bd;--text2:#ac9675;--text3:#786246;--text4:#453627;
+  --inst:#f0dfbd;--inst2:#c9ad80;
+  --amber:#e99a2e;--amber2:#ffc65b;--amber-lo:#261707;
+  --cyan:#56b7ce;--cyan2:#3298b3;--cyan-lo:#071b20;
+  --green:#9dc94a;--green-lo:#14200a;--yellow:#dcb13a;--yellow-lo:#251c05;
+  --orange:#eb8a29;--orange-lo:#291303;--red:#c9442d;--red2:#ff5743;--red-lo:#290b07;
+}
+body{
+  background:
+    radial-gradient(ellipse at 53% 32%,rgba(123,73,25,.14),transparent 35%),
+    repeating-linear-gradient(0deg,rgba(255,207,124,.017) 0 1px,transparent 1px 4px),
+    var(--bg);
+  color:var(--text);
+}
+#app{background:linear-gradient(90deg,rgba(93,58,25,.12),transparent 17%,transparent 83%,rgba(93,58,25,.12))}
+.hdr{min-height:62px;background:linear-gradient(180deg,#21170e,#100e0b 70%);border-bottom:2px solid #6c4b28;box-shadow:0 7px 19px rgba(0,0,0,.65)}
+.hdr::before{height:3px;opacity:.8;background:linear-gradient(90deg,#221408 0 3%,var(--amber) 17%,#ffd17a 50%,var(--amber) 83%,#221408 97%)}
+.hdr-brand{min-width:292px;padding:0 21px;background:linear-gradient(90deg,#16120d,#22170e);border-right:1px solid var(--seam2)}
+.hdr-logo{width:34px;height:34px;border-radius:50%;border-color:var(--cyan);background:#0a1b20;box-shadow:0 0 12px rgba(86,183,206,.28)}
+.hdr-logo svg{width:20px;height:20px}.hdr-name{font-size:1.08rem;color:#f1cf92}.hdr-tagline{font-size:.61rem;color:#c8ae82}
+.hdr-cell{min-width:105px;padding:0 16px;background:linear-gradient(180deg,rgba(255,193,99,.04),transparent)}
+.hdr-cell-lbl,.stat-lbl,.module-title{color:#aa8961}.hdr-cell-val{color:#f1d7a4}
+.hdr-right{background:#0f0d0a}.demo-btn{color:#c7a774}.demo-btn.on,.demo-btn:hover{background:var(--amber-lo);color:var(--amber2)}
+.main-body{grid-template-columns:280px minmax(0,1fr);gap:10px;padding:10px 12px 8px;}
+.sidebar,.content{border:1px solid #51371f;box-shadow:inset 0 0 0 2px rgba(255,190,90,.035),0 8px 20px rgba(0,0,0,.38)}
+.sidebar{background:linear-gradient(180deg,#15110c,#0d0c0a)}
+.sidebar-hdr{padding:13px 15px 10px;background:linear-gradient(90deg,#21170e,#15110c);border-bottom-color:#5a3e25}.sidebar-title{font-size:.68rem;color:#e8c88d}.sidebar-count{color:var(--amber2)}
+.ev-slot{margin:7px 8px;padding:12px 12px 11px;border:1px solid #332518;border-left:3px solid transparent;background:linear-gradient(100deg,rgba(255,190,90,.035),transparent)}
+.ev-slot:hover{background:#23180f;border-color:#664421}.ev-slot.sel{background:linear-gradient(100deg,#32180d,#1c130d);border-color:#c94e25;border-left-color:#ff5743;box-shadow:0 0 13px rgba(255,87,67,.15),inset 0 0 14px rgba(255,160,60,.04)}
+.ev-slot-id{font-size:.82rem;color:#f4d8a6}.ev-slot-objs{color:#c6a776}.ev-slot-score,.ev-slot-tca{color:#987954}.badge{border-radius:2px;letter-spacing:.08em}.badge-CRITICAL{color:#ff6c55;background:#310a06}.badge-HIGH{color:#ffc05a}.badge-MONITOR{color:#e6c658}.badge-LOW{color:#a8cf5b}
+.content{background:linear-gradient(180deg,#100e0b,#0c0b09);overflow:hidden}
+.stat-strip{background:linear-gradient(180deg,#21170f,#15110d);border-bottom-color:#5d4126}.stat-cell{padding:10px 16px;border-right-color:#4a331f}.stat-num{font-size:1.6rem;color:#f0d7ad}.c-total{color:var(--cyan)}.c-crit{color:var(--red2)}
+.orbital-hero{height:245px!important;background:radial-gradient(ellipse at center,#0b1920 0%,#080b0d 57%,#050505 100%);border-bottom:1px solid #71502d;box-shadow:inset 0 -12px 20px rgba(0,0,0,.5)}
+.orbital-hero::before{content:'';position:absolute;inset:9px;border:1px solid rgba(225,164,75,.24);pointer-events:none;clip-path:polygon(0 0,100% 0,100% 92%,96% 100%,0 100%)}
+.orbital-overlay{padding:17px 22px}.orb-label{color:rgba(245,211,159,.62);letter-spacing:.14em}.orb-event-info{padding:7px 10px;background:rgba(4,5,5,.58);border-left:2px solid var(--amber)}
+.detail-hdr{padding:12px 18px 10px;background:linear-gradient(90deg,#1c150e,#110f0c);border-bottom-color:#583d23}.detail-id{color:#c49f6a}.detail-objects{font-size:1.28rem;color:#f0d9b1}.metrics-strip{background:#100e0b;border-bottom-color:#4e351f}.metric{border-right-color:#3c2919}.metric-val{color:#f2dcb7}.metric-lbl{color:#9c7951}
+.tabs{background:linear-gradient(180deg,#1c160f,#120f0c);border-bottom-color:#634426}.tab{padding:10px 16px;color:#9a7955}.tab.on{color:#ffd173;border-bottom-color:#ef9d30;background:rgba(226,137,34,.06)}
+.tab-body{padding:15px 18px;background:radial-gradient(ellipse at 50% 0,rgba(120,73,28,.07),transparent 60%)}
+.module{background:linear-gradient(135deg,#1a150f,#100e0b);border-color:#523820;border-top-color:#74502d;box-shadow:inset 0 0 0 1px rgba(255,211,139,.025),0 3px 7px rgba(0,0,0,.23)}
+.module-hdr{background:linear-gradient(90deg,#251a10,#17120d);border-bottom-color:#4d351f}.module.accent{border-top-color:#ef9d30}.module.cyan{border-top-color:#44a7c0}.module::before,.module::after{color:#d49b52}.kv td{border-color:#3b291a}.kv td:first-child{color:#b18f67}.kv td:last-child{color:#f3d9ae}
+.fbar-bg{background:#2a1e13}.inline-disc,.disc-bar{background:#24180d;border-color:#5d3e1f;color:#c9ad80}.footer{background:#100d0a;border-top-color:#5a3e24;color:#806444}
+@media(max-width:1100px){.main-body{grid-template-columns:250px minmax(0,1fr);padding:7px}.hdr-cell{min-width:90px;padding:0 10px}.hdr-brand{min-width:250px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+// IMPORTANT: empty BASE = same-origin relative paths.
+// Never use an absolute URL here — it causes cross-origin failures.
+const BASE = '';
+
+async function api(path, opts = {}) {
+  const r = await fetch(BASE + path, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status} — ${path}`);
+  return r.json();
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S = {
+  events: [],        // [{event, assessment}]
+  selected: null,    // event_id string
+  tab: 'overview',   // active tab
+  aiStatus: null,    // from /api/status
+  demo: false,       // demo mode on/off
+  demoStep: 0,       // demo walkthrough step
+  cache: {},         // per-event tab data cache
+  chatHistory: [],   // [{role, content, sources?}]
+  nasaData: null,    // NASA/JPL data
+  simResult: null,   // last simulation result
+  briefingAudience: 'operator',
+};
+
+const DEMO_STEPS = [
+  'Select DEMO-003 (CRITICAL, escalating)',
+  'View Evidence tab — see contributing factors',
+  'View Changes tab — escalating trend',
+  'Run What-If Simulation',
+  'Read AI Briefing',
+  'Ask Chat a question',
+  'View NASA/JPL Real Data',
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+
+function clsColor(cls) {
+  if (!cls) return 'LOW';
+  if (cls.includes('CRITICAL')) return 'CRITICAL';
+  if (cls.includes('HIGH')) return 'HIGH';
+  if (cls.includes('MONITOR')) return 'MONITOR';
+  return 'LOW';
+}
+
+function clsLabel(cls) {
+  if (!cls) return 'LOW';
+  if (cls.includes('CRITICAL')) return 'CRITICAL';
+  if (cls.includes('HIGH')) return 'HIGH';
+  if (cls.includes('MONITOR')) return 'MONITOR';
+  return 'LOW';
+}
+
+function fmtDist(km) {
+  if (km == null) return '<span class="null">—</span>';
+  return `<span class="mono">${km.toFixed(1)}</span>`;
+}
+
+function fmtProb(p) {
+  if (p == null) return '<span class="null">—</span>';
+  return `<span class="mono">${p.toExponential(2)}</span>`;
+}
+
+function fmtVel(v) {
+  if (v == null) return '<span class="null">—</span>';
+  return `<span class="mono">${v.toFixed(2)}</span>`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  } catch { return iso; }
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  try {
+    const diff = (new Date(iso) - Date.now()) / 3600000;
+    if (diff > 0) return `TCA in ${diff.toFixed(1)}h`;
+    return `TCA ${Math.abs(diff).toFixed(1)}h ago`;
+  } catch { return ''; }
+}
+
+function badge(cls, label) {
+  const c = clsColor(cls);
+  return `<span class="badge badge-${c}">${label || c}</span>`;
+}
+
+function trendBadge(status) {
+  if (!status) return '';
+  const s = status.toLowerCase();
+  if (s.includes('escal')) return `<span class="badge badge-esc">↑ ESCALATING</span>`;
+  if (s.includes('improv') || s.includes('resolv')) return `<span class="badge badge-imp">↓ IMPROVING</span>`;
+  if (s === 'stable') return `<span class="badge badge-stable">→ STABLE</span>`;
+  return `<span class="badge badge-stable">${status.toUpperCase()}</span>`;
+}
+
+function spinner() {
+  return `<div class="loading"><div class="spinner"></div> Loading…</div>`;
+}
+
+function errBox(msg) {
+  return `<div class="err-box"><div class="err-title">Error</div>${msg}</div>`;
+}
+
+// ─── ORBITAL SVG ──────────────────────────────────────────────────────────────
+function buildOrbitalSVG(event, assessment) {
+  const W = 700, H = 300;
+  const cx = W / 2, cy = H / 2;
+  const cls = event ? clsColor(assessment?.classification) : 'LOW';
+
+  const conjColors = { CRITICAL:'#e86060', HIGH:'#d4721a', MONITOR:'#d4b020', LOW:'#52c07a' };
+  const conjColor = conjColors[cls] || '#52c07a';
+
+  // Orbit radii
+  const r1 = 140, r2 = 205;
+  // Conjunction point — near closest approach
+  const angle = 0.35; // radians
+  const px1 = cx + r1 * Math.cos(angle);
+  const py1 = cy - r1 * Math.sin(angle) * 0.38;
+  const px2 = cx + r2 * Math.cos(angle + 0.15);
+  const py2 = cy - r2 * Math.sin(angle + 0.15) * 0.38;
+
+  // Miss distance indicator width (relative, capped)
+  const miss = event?.miss_distance_km;
+  const missNorm = miss != null ? Math.min(1, miss / 30) : 0.5;
+  const gapLen = 6 + missNorm * 22;
+
+  // Primary + secondary positions — opposite sides of orbit
+  const sat1angle = angle + Math.PI * 0.92;
+  const sat2angle = angle + 0.15 + Math.PI * 1.1;
+  const s1x = cx + r1 * Math.cos(sat1angle);
+  const s1y = cy - r1 * Math.sin(sat1angle) * 0.38;
+  const s2x = cx + r2 * Math.cos(sat2angle);
+  const s2y = cy - r2 * Math.sin(sat2angle) * 0.38;
+
+  const objA = event?.primary_object_id || 'OBJ-A';
+  const objB = event?.secondary_object_id || 'OBJ-B';
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="orbital-svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <radialGradient id="earth-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a3a5c" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#0a1826" stop-opacity=".4"/>
+    </radialGradient>
+    <radialGradient id="atmo" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="#2a6090" stop-opacity=".18"/>
+    </radialGradient>
+    <radialGradient id="earth-ocean" cx="36%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#6b9fc0"/>
+      <stop offset="52%" stop-color="#174464"/>
+      <stop offset="100%" stop-color="#06131d"/>
+    </radialGradient>
+    <filter id="earth-shadow"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glow-red"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-sat"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Stars -->
+  ${Array.from({length:28},(_,i)=>{
+    const sx=((i*137.5)%W).toFixed(1);
+    const sy=((i*97.3)%H).toFixed(1);
+    const so=(0.15+((i*0.13)%0.4)).toFixed(2);
+    return `<circle cx="${sx}" cy="${sy}" r="0.7" fill="white" opacity="${so}"/>`;
+  }).join('')}
+
+  <!-- Earth body: visual context only, not a propagation model -->
+  <circle cx="${cx}" cy="${cy}" r="87" fill="#2c7799" opacity=".17" filter="url(#earth-shadow)"/>
+  <circle cx="${cx}" cy="${cy}" r="72" fill="url(#earth-ocean)" stroke="#9ad7ef" stroke-width="1.2" opacity=".98"/>
+  <path d="M${cx-47} ${cy-33} q23-22 42-8 l17 13 14-2 18 19-14 11-13-7-17 16-21-8-17 4-17-21z" fill="#718758" opacity=".86"/>
+  <path d="M${cx+28} ${cy-47} q21 5 28 25 l-9 18-15-3-9-17zM${cx-3} ${cy+14} q20 7 25 28l-12 24-14-13 3-18-15-13z" fill="#73865c" opacity=".78"/>
+  <path d="M${cx-62} ${cy-9} q27-11 49 3M${cx+6} ${cy-29}q34-10 56 9M${cx-34} ${cy+39}q26 10 53 0" fill="none" stroke="#dbe9e7" stroke-width="3" opacity=".35"/>
+  <!-- Atmosphere halo -->
+  <ellipse cx="${cx}" cy="${cy}" rx="81" ry="81" fill="url(#atmo)" opacity=".75"/>
+
+  <!-- Grid lines (horizon) -->
+  <line x1="${cx-110}" y1="${cy}" x2="${cx+110}" y2="${cy}" stroke="#1e2a3a" stroke-width="0.4" stroke-dasharray="4,8"/>
+  <line x1="${cx}" y1="${cy-80}" x2="${cx}" y2="${cy+80}" stroke="#1e2a3a" stroke-width="0.4" stroke-dasharray="4,8"/>
+
+  <!-- Orbit 1 (primary) -->
+  <ellipse cx="${cx}" cy="${cy}" rx="${r1}" ry="${r1*0.38}"
+    fill="none" stroke="#3a6090" stroke-width="1" stroke-dasharray="5,4" opacity=".55"/>
+
+  <!-- Orbit 2 (secondary) -->
+  <ellipse cx="${cx}" cy="${cy}" rx="${r2}" ry="${r2*0.38}"
+    fill="none" stroke="#5a4080" stroke-width="1" stroke-dasharray="5,4" opacity=".55"/>
+
+  <!-- Conjunction zone highlight -->
+  <circle cx="${(px1+px2)/2}" cy="${(py1+py2)/2}" r="${gapLen+3}"
+    fill="${conjColor}" opacity=".04" stroke="${conjColor}" stroke-width=".5" stroke-opacity=".15"/>
+
+  <!-- Miss distance bracket -->
+  <line x1="${px1.toFixed(1)}" y1="${py1.toFixed(1)}" x2="${px2.toFixed(1)}" y2="${py2.toFixed(1)}"
+    stroke="${conjColor}" stroke-width="1.2" stroke-dasharray="2,2" opacity=".7"
+    ${cls === 'CRITICAL' ? 'filter="url(#glow-red)"' : ''}/>
+  <!-- bracket ticks -->
+  <line x1="${(px1-2).toFixed(1)}" y1="${(py1-3).toFixed(1)}" x2="${(px1+2).toFixed(1)}" y2="${(py1+3).toFixed(1)}"
+    stroke="${conjColor}" stroke-width="1" opacity=".7"/>
+  <line x1="${(px2-2).toFixed(1)}" y1="${(py2-3).toFixed(1)}" x2="${(px2+2).toFixed(1)}" y2="${(py2+3).toFixed(1)}"
+    stroke="${conjColor}" stroke-width="1" opacity=".7"/>
+
+  <!-- Primary satellite -->
+  <circle cx="${s1x.toFixed(1)}" cy="${s1y.toFixed(1)}" r="4"
+    fill="#5bc4d8" stroke="#1e2128" stroke-width="1" filter="url(#glow-sat)"/>
+  <!-- velocity arrow -->
+  <line x1="${s1x.toFixed(1)}" y1="${s1y.toFixed(1)}"
+    x2="${(s1x + 9*Math.cos(sat1angle+1.5)).toFixed(1)}"
+    y2="${(s1y - 9*Math.sin(sat1angle+1.5)*0.38).toFixed(1)}"
+    stroke="#5bc4d8" stroke-width="0.8" opacity=".55"/>
+
+  <!-- Secondary satellite -->
+  <circle cx="${s2x.toFixed(1)}" cy="${s2y.toFixed(1)}" r="3.5"
+    fill="#c080e0" stroke="#1e2128" stroke-width="1" filter="url(#glow-sat)"/>
+  <!-- velocity arrow -->
+  <line x1="${s2x.toFixed(1)}" y1="${s2y.toFixed(1)}"
+    x2="${(s2x + 8*Math.cos(sat2angle+1.5)).toFixed(1)}"
+    y2="${(s2y - 8*Math.sin(sat2angle+1.5)*0.38).toFixed(1)}"
+    stroke="#c080e0" stroke-width="0.8" opacity=".55"/>
+
+  <!-- Labels -->
+  <text x="${(s1x+9).toFixed(1)}" y="${(s1y+1).toFixed(1)}"
+    font-family="IBM Plex Mono,monospace" font-size="10" fill="#5bc4d8" opacity=".88">${objA}</text>
+  <text x="${(s2x+9).toFixed(1)}" y="${(s2y+1).toFixed(1)}"
+    font-family="IBM Plex Mono,monospace" font-size="10" fill="#c080e0" opacity=".88">${objB}</text>
+  <text x="${((px1+px2)/2).toFixed(1)}" y="${((py1+py2)/2 - gapLen - 5).toFixed(1)}"
+    font-family="IBM Plex Mono,monospace" font-size="9" fill="${conjColor}" opacity=".9" text-anchor="middle">
+    ${miss != null ? miss.toFixed(1)+' km' : 'DIST?'}
+  </text>
+</svg>`;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  el('app').innerHTML = buildApp();
+  attachListeners();
+}
+
+function buildApp() {
+  const selEvent = S.events.find(e => e.event?.event_id === S.selected);
+  const ev = selEvent?.event;
+  const ass = selEvent?.assessment;
+
+  // Summary counts
+  const tot = S.events.length;
+  const crit = S.events.filter(e => e.assessment?.classification?.includes('CRITICAL')).length;
+  const high = S.events.filter(e => e.assessment?.classification?.includes('HIGH') && !e.assessment?.classification?.includes('CRITICAL')).length;
+  const mon = S.events.filter(e => e.assessment?.classification === 'MONITOR').length;
+  const esc = S.events.filter(e => e._trend === 'escalating').length;
+
+  const aiLabel = S.aiStatus
+    ? (S.aiStatus.ai_provider?.class === 'GraniteProvider' ? 'IBM GRANITE' :
+       S.aiStatus.ai_provider?.class === 'MockProvider' ? 'MOCK AI' : 'AI OFFLINE')
+    : '—';
+  const aiDot = S.aiStatus
+    ? (S.aiStatus.ai_provider?.class === 'GraniteProvider' ? 'on' :
+       S.aiStatus.ai_provider?.class === 'MockProvider' ? 'warn' : 'off')
+    : 'off';
+
+  return `
+<div id="app-root" class="app-root" style="display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="5.5" stroke="#e89a14" stroke-width="1.2"/>
+          <circle cx="8" cy="8" r="2" fill="#e89a14" opacity=".7"/>
+          <line x1="8" y1="2" x2="8" y2="14" stroke="#e89a14" stroke-width=".6" opacity=".4"/>
+          <line x1="2" y1="8" x2="14" y2="8" stroke="#e89a14" stroke-width=".6" opacity=".4"/>
+          <ellipse cx="8" cy="8" rx="7" ry="3.2" stroke="#e89a14" stroke-width=".7" stroke-dasharray="2,2" opacity=".35"/>
+        </svg>
+      </div>
+      <div class="hdr-wordmark">
+        <div class="hdr-name">Conjunct<em>IQ</em></div>
+        <div class="hdr-tagline">Orbital Encounter Intelligence</div>
+      </div>
+    </div>
+    <div class="hdr-cells">
+      <div class="hdr-cell">
+        <div class="hdr-cell-lbl">Events</div>
+        <div class="hdr-cell-val mono">${tot}</div>
+      </div>
+      <div class="hdr-cell">
+        <div class="hdr-cell-lbl">Critical</div>
+        <div class="hdr-cell-val mono" style="color:var(--red2)">${crit}</div>
+      </div>
+      <div class="hdr-cell">
+        <div class="hdr-cell-lbl">Escalating</div>
+        <div class="hdr-cell-val mono" style="color:var(--amber)">${esc}</div>
+      </div>
+      <div class="hdr-cell">
+        <div class="hdr-cell-lbl">AI Provider</div>
+        <div class="hdr-cell-val led-row">
+          <span class="led ${aiDot} ${aiDot === 'on' ? 'pulse' : ''}"></span>
+          <span class="mono" style="font-size:.68rem">${aiLabel}</span>
+        </div>
+      </div>
+      <div class="hdr-cell">
+        <div class="hdr-cell-lbl">Data Mode</div>
+        <div class="hdr-cell-val" style="font-size:.68rem;color:var(--cyan)">${S.aiStatus?.data_mode || 'demo'}</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <button class="demo-btn ${S.demo ? 'on' : ''}" id="btn-demo">
+        ${S.demo ? '⬡ DEMO ON' : '⬡ DEMO'}
+      </button>
+    </div>
+  </header>
+
+  <!-- DEMO BAR -->
+  ${S.demo ? buildDemoBar() : ''}
+
+  <!-- MAIN BODY -->
+  <div class="main-body" style="flex:1;min-height:0">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-hdr">
+        <span class="sidebar-title">Event Console</span>
+        <span class="sidebar-count mono">${tot}</span>
+      </div>
+      <div class="event-list" id="event-list">
+        ${S.events.length === 0
+          ? `<div class="loading"><div class="spinner"></div> Loading events…</div>`
+          : S.events.map(e => buildEventSlot(e)).join('')}
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <div class="content">
+      ${ev ? buildEventDetail(ev, ass) : buildWelcome()}
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span class="footer-l">ConjunctIQ · Decision Support Only · Not for Spacecraft Control</span>
+    <span class="footer-m mono" style="font-size:.52rem">Port 8001</span>
+    <span class="footer-r">Synthetic Demo · ${new Date().getFullYear()}</span>
+  </footer>
+</div>`;
+}
+
+function buildDemoBar() {
+  const steps = DEMO_STEPS.map((s, i) => {
+    const cur = i === S.demoStep;
+    return `${i > 0 ? '<span class="demo-arr">›</span>' : ''}
+            <span class="demo-step${cur ? ' cur' : ''}">${s}</span>`;
+  }).join('');
+  return `<div class="demo-bar">
+    <div class="demo-steps">${steps}</div>
+    <button class="demo-close" id="btn-demo-close">✕ Exit Demo</button>
+  </div>`;
+}
+
+function buildEventSlot(item) {
+  const ev = item.event;
+  const ass = item.assessment;
+  const cls = clsColor(ass?.classification);
+  const trend = item._trend || 'stable';
+  const sel = ev?.event_id === S.selected;
+  return `<div class="ev-slot${sel ? ' sel' : ''}" data-id="${ev?.event_id}">
+    <div class="ev-slot-stripe ${cls}"></div>
+    <div class="ev-slot-id mono">${ev?.event_id}</div>
+    <div class="ev-slot-objs">${ev?.primary_object_id} ↔ ${ev?.secondary_object_id}</div>
+    <div class="ev-slot-row">
+      ${badge(ass?.classification)}
+      ${trendBadge(trend)}
+    </div>
+    <div class="ev-slot-score">${ass?.score}/100 · ${ass?.classification}</div>
+    <div class="ev-slot-tca mono">${timeAgo(ev?.time_of_closest_approach)}</div>
+  </div>`;
+}
+
+function buildWelcome() {
+  return `<div class="welcome">
+    <div>
+      <div class="welcome-h1">Orbital Encounter<br><em>Intelligence</em></div>
+      <div style="margin-top:8px"><span class="badge badge-demo">SYNTHETIC DEMO</span></div>
+    </div>
+    <p class="welcome-p">
+      ConjunctIQ monitors predicted close approaches between spacecraft and debris objects.
+      It provides <strong>deterministic attention assessment</strong> — not collision probability predictions.
+      Select an event from the console to begin analysis.
+    </p>
+    <div class="welcome-grid">
+      <div class="wcard">
+        <div class="wcard-num">${S.events.length}</div>
+        <div class="wcard-lbl">Active Events</div>
+        <div class="wcard-desc">Conjunction events loaded from the operational database.</div>
+      </div>
+      <div class="wcard">
+        <div class="wcard-num">${S.events.filter(e=>e.assessment?.classification?.includes('CRITICAL')).length}</div>
+        <div class="wcard-lbl">Critical Attention</div>
+        <div class="wcard-desc">Events with score ≥70/100 requiring immediate analyst review.</div>
+      </div>
+      <div class="wcard">
+        <div class="wcard-num">${S.events.filter(e=>e._trend==='escalating').length}</div>
+        <div class="wcard-lbl">Escalating</div>
+        <div class="wcard-desc">Events trending worse compared to previous update.</div>
+      </div>
+    </div>
+    <div class="flow-bar">
+      <div class="flow-title">Analysis Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step hl">Select Event</span>
+        <span class="flow-arr">→</span><span class="flow-step">Overview</span>
+        <span class="flow-arr">→</span><span class="flow-step">Evidence</span>
+        <span class="flow-arr">→</span><span class="flow-step">Changes</span>
+        <span class="flow-arr">→</span><span class="flow-step">Simulate</span>
+        <span class="flow-arr">→</span><span class="flow-step">Briefing</span>
+        <span class="flow-arr">→</span><span class="flow-step hl">Chat</span>
+      </div>
+    </div>
+    <div class="disc-bar">
+      <strong>Decision support only.</strong> ConjunctIQ assesses attention priorities.
+      It does not predict collisions, recommend maneuvers, or command spacecraft.
+      All data marked <span class="badge badge-demo">SYNTHETIC DEMO</span> is for demonstration purposes only.
+    </div>
+  </div>`;
+}
+
+function buildEventDetail(ev, ass) {
+  const cls = clsColor(ass?.classification);
+  return `
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-cell">
+      <div class="stat-lbl">Score</div>
+      <div class="stat-num c-${cls.toLowerCase()}">${ass?.score ?? '—'}</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">Miss Dist</div>
+      <div class="stat-num" style="font-size:1.1rem;color:var(--inst)">${ev.miss_distance_km != null ? ev.miss_distance_km.toFixed(1) : '—'}</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">Collision P</div>
+      <div class="stat-num" style="font-size:1.1rem;color:var(--inst)">${ev.collision_probability != null ? ev.collision_probability.toExponential(1) : '—'}</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">Velocity</div>
+      <div class="stat-num" style="font-size:1.1rem;color:var(--inst)">${ev.relative_velocity_km_s != null ? ev.relative_velocity_km_s.toFixed(1) : '—'}</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">Update #</div>
+      <div class="stat-num" style="color:var(--amber)">${ev.update_number ?? '—'}</div>
+    </div>
+  </div>
+
+  <!-- ORBITAL HERO -->
+  <div class="orbital-hero" style="height:185px">
+    ${buildOrbitalSVG(ev, ass)}
+    <div class="orbital-overlay">
+      <div class="orb-top">
+        <span class="orb-label">PREDICTED ORBIT GEOMETRY · SYNTHETIC DEMO</span>
+        <span class="orb-label" style="color:rgba(232,154,20,.4)">${ass?.classification || ''}</span>
+      </div>
+      <div class="orb-bottom">
+        <div class="orb-legend">
+          <div class="orb-leg-item"><div class="orb-leg-dot" style="background:#5bc4d8"></div><span class="orb-leg-lbl">${ev.primary_object_id}</span></div>
+          <div class="orb-leg-item"><div class="orb-leg-dot" style="background:#c080e0"></div><span class="orb-leg-lbl">${ev.secondary_object_id}</span></div>
+        </div>
+        <div class="orb-event-info">
+          <div class="orb-ev-id mono">${ev.event_id}</div>
+          <div class="orb-ev-tca">${timeAgo(ev.time_of_closest_approach)}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL HEADER -->
+  <div class="detail-hdr">
+    <div class="detail-top">
+      <div>
+        <div class="detail-id mono">${ev.event_id} · Update #${ev.update_number}</div>
+        <div class="detail-objects">${ev.primary_object_id} ↔ ${ev.secondary_object_id}</div>
+        <div class="detail-badges">
+          ${badge(ass?.classification)}
+          ${trendBadge(S.cache[ev.event_id]?._trend)}
+          <span class="badge badge-demo">SYNTHETIC DEMO</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS STRIP -->
+  <div class="metrics-strip">
+    <div class="metric"><div class="metric-lbl">Miss Distance</div><div class="metric-val${ev.miss_distance_km==null?' null':''}">${ev.miss_distance_km!=null?ev.miss_distance_km.toFixed(2):'not reported'}</div><div class="metric-unit">km</div></div>
+    <div class="metric"><div class="metric-lbl">Collision Prob</div><div class="metric-val${ev.collision_probability==null?' null':''}">${ev.collision_probability!=null?ev.collision_probability.toExponential(2):'not reported'}</div></div>
+    <div class="metric"><div class="metric-lbl">Velocity</div><div class="metric-val${ev.relative_velocity_km_s==null?' null':''}">${ev.relative_velocity_km_s!=null?ev.relative_velocity_km_s.toFixed(2):'—'}</div><div class="metric-unit">km/s</div></div>
+    <div class="metric"><div class="metric-lbl">Radial Unc.</div><div class="metric-val${ev.radial_uncertainty_km==null?' null':''}">${ev.radial_uncertainty_km!=null?ev.radial_uncertainty_km.toFixed(1):'—'}</div><div class="metric-unit">km</div></div>
+    <div class="metric"><div class="metric-lbl">Along-Track Unc.</div><div class="metric-val${ev.along_track_uncertainty_km==null?' null':''}">${ev.along_track_uncertainty_km!=null?ev.along_track_uncertainty_km.toFixed(1):'—'}</div><div class="metric-unit">km</div></div>
+    <div class="metric"><div class="metric-lbl">TCA</div><div class="metric-val" style="font-size:.74rem">${fmtDate(ev.time_of_closest_approach)}</div></div>
+    <div class="metric"><div class="metric-lbl">Source</div><div class="metric-val" style="font-size:.74rem;color:var(--text2)">${ev.data_source || '—'}</div></div>
+  </div>
+
+  <!-- DETAIL TABS + CONTENT -->
+  <div class="detail" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+    <div class="tabs">
+      ${['overview','evidence','changes','observe','simulate','briefing','chat','nasa'].map(t =>
+        `<button class="tab${S.tab===t?' on':''}" data-tab="${t}">${tabLabel(t)}</button>`
+      ).join('')}
+    </div>
+    <div class="tab-body" id="tab-body">
+      ${buildTabContent(ev, ass)}
+    </div>
+  </div>`;
+}
+
+function tabLabel(t) {
+  return {
+    overview: 'Overview', evidence: 'Evidence', changes: 'Changes',
+    observe: 'Next Obs', simulate: 'Simulate', briefing: 'Briefing',
+    chat: 'Chat', nasa: 'NASA/JPL'
+  }[t] || t;
+}
+
+function buildTabContent(ev, ass) {
+  const key = ev?.event_id;
+  const cache = S.cache[key] || {};
+  switch (S.tab) {
+    case 'overview':  return buildOverviewTab(ev, ass);
+    case 'evidence':  return buildEvidenceTab(ev, ass, cache.evidence);
+    case 'changes':   return buildChangesTab(ev, cache.changes);
+    case 'observe':   return buildObserveTab(ev, cache.observe);
+    case 'simulate':  return buildSimulateTab(ev, ass);
+    case 'briefing':  return buildBriefingTab(ev, cache.briefing);
+    case 'chat':      return buildChatTab(ev);
+    case 'nasa':      return buildNasaTab();
+    default: return '';
+  }
+}
+
+// ─── TAB: OVERVIEW ────────────────────────────────────────────────────────────
+function buildOverviewTab(ev, ass) {
+  const factors = ass?.factors || [];
+  const cls = clsColor(ass?.classification);
+  const ringColor = { CRITICAL:'#e86060', HIGH:'#d4721a', MONITOR:'#d4b020', LOW:'#52c07a' }[cls] || '#52c07a';
+  const score = ass?.score ?? 0;
+  const circumference = 2 * Math.PI * 31;
+  const dash = (score / 100) * circumference;
+
+  return `<div class="two-col">
+  <div class="module accent">
+    <div class="module-hdr"><span class="module-title">Attention Assessment</span></div>
+    <div class="module-body">
+      <div class="score-wrap">
+        <div class="ring-cont">
+          <svg width="76" height="76" viewBox="0 0 76 76">
+            <circle cx="38" cy="38" r="31" fill="none" stroke="var(--seam2)" stroke-width="5"/>
+            <circle cx="38" cy="38" r="31" fill="none" stroke="${ringColor}" stroke-width="5"
+              stroke-dasharray="${dash.toFixed(1)} ${(circumference-dash).toFixed(1)}"
+              stroke-linecap="round" transform="rotate(-90 38 38)"/>
+          </svg>
+          <div class="ring-num" style="color:${ringColor}">${score}</div>
+        </div>
+        <div class="score-meta">
+          <div class="score-cls ${cls}">${ass?.classification || '—'}</div>
+          <div class="score-note">Score ${score}/100 · Attention weight only — not collision probability.</div>
+          <div class="score-chip">DETERMINISTIC ENGINE</div>
+        </div>
+      </div>
+      <div class="factors">
+        ${factors.map(f => {
+          const pct = Math.min(100, (f.points / 35) * 100);
+          const fc = f.points >= 25 ? '#e86060' : f.points >= 15 ? '#d4721a' : '#d4b020';
+          return `<div class="frow">
+            <span class="fname">${f.factor.replace(/_/g,' ')}</span>
+            <div class="fbar-bg"><div class="fbar" style="width:${pct}%;background:${fc}"></div></div>
+            <span class="fpts">+${f.points}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-hdr"><span class="module-title">Event Metadata</span></div>
+    <div class="module-body">
+      <table class="kv">
+        <tr><td>Event ID</td><td class="mono">${ev.event_id}</td></tr>
+        <tr><td>Primary</td><td class="mono">${ev.primary_object_id}</td></tr>
+        <tr><td>Secondary</td><td class="mono">${ev.secondary_object_id}</td></tr>
+        <tr><td>Update #</td><td class="mono">${ev.update_number}</td></tr>
+        <tr><td>TCA</td><td class="mono" style="font-size:.68rem">${fmtDate(ev.time_of_closest_approach)}</td></tr>
+        <tr><td>Time to TCA</td><td class="mono">${timeAgo(ev.time_of_closest_approach)}</td></tr>
+        <tr><td>Timestamp</td><td class="mono" style="font-size:.68rem">${fmtDate(ev.timestamp)}</td></tr>
+        <tr><td>Data Source</td><td class="${ev.data_source?'mono':'null'}">${ev.data_source || 'not specified'}</td></tr>
+      </table>
+    </div>
+  </div>
+  </div>
+
+  <div class="inline-disc">${ass?.disclaimer || ''}</div>`;
+}
+
+// ─── TAB: EVIDENCE ────────────────────────────────────────────────────────────
+function buildEvidenceTab(ev, ass, evidence) {
+  if (!evidence) {
+    return `<div>${spinner()}</div>`;
+  }
+  if (evidence === 'loading') return spinner();
+  if (evidence === 'error') return errBox('Failed to load evidence.');
+  if (!Array.isArray(evidence) || evidence.length === 0) {
+    return `<div class="empty"><div class="empty-title">No Evidence</div><div class="empty-sub">No evidence items available for this event.</div></div>`;
+  }
+  return `<div class="ev-evidence">
+  ${evidence.map(e => {
+    const imp = e.importance || 'low';
+    const valFmt = typeof e.value === 'number' && e.unit === 'km'
+      ? `${e.value} ${e.unit}` : e.value != null ? String(e.value) : 'N/A';
+    const baseFmt = e.baseline != null ? String(e.baseline) : 'N/A';
+    return `<div class="ev-item ${imp}">
+      <div class="ev-item-hdr">
+        <span class="ev-factor-name">${(e.factor||'').replace(/_/g,' ')}</span>
+        <span class="ev-imp ${imp}">${imp.toUpperCase()}</span>
+      </div>
+      <div class="ev-compare">
+        <div class="ev-col"><label>Observed</label><div class="val">${valFmt}</div></div>
+        <div class="ev-col"><label>Reference</label><div class="val dim">${baseFmt}</div></div>
+      </div>
+      <div class="ev-expl">${e.explanation || ''}</div>
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+// ─── TAB: CHANGES ─────────────────────────────────────────────────────────────
+function buildChangesTab(ev, changes) {
+  if (!changes) return spinner();
+  if (changes === 'loading') return spinner();
+  if (changes === 'error') return errBox('Failed to load changes.');
+
+  const status = changes.status || 'unknown';
+  const s = status.toLowerCase();
+  const bannerCls = s.includes('escal') ? 'escalating' : s.includes('improv') || s.includes('resolv') ? 'improving' : s === 'stable' ? 'stable' : 'insufficient';
+  const icon = { escalating:'⬆', improving:'⬇', stable:'→', insufficient:'?' }[bannerCls] || '?';
+  const textCls = { escalating:'escalating', improving:'improving', stable:'stable', insufficient:'insufficient' }[bannerCls];
+  const sub = { escalating:'Trend is worsening compared to previous update.',
+                improving:'Trend is improving compared to previous update.',
+                stable:'No significant changes from previous update.',
+                insufficient:'Insufficient data for trend comparison.' }[bannerCls] || '';
+
+  const fieldItems = (changes.changes || []).filter(c => c.field !== 'attention_classification');
+
+  return `<div class="status-banner ${bannerCls}">
+    <span class="status-icon">${icon}</span>
+    <div>
+      <div class="status-text ${textCls}">${status.toUpperCase()}</div>
+      <div class="status-sub">${sub}</div>
+    </div>
+  </div>
+  ${fieldItems.length > 0 ? `<div class="change-grid">
+    ${fieldItems.map(c => {
+      const worsening = (c.field === 'miss_distance_km' && c.absolute_change < 0) ||
+                        (c.field !== 'miss_distance_km' && c.absolute_change > 0);
+      const better = !worsening && c.absolute_change !== 0;
+      const sig = c.significance === 'high';
+      const prevFmt = c.previous != null ? (typeof c.previous === 'number' ? c.previous.toExponential(2) : c.previous) : '—';
+      const curFmt = c.current != null ? (typeof c.current === 'number' ? c.current.toExponential(2) : c.current) : '—';
+      const pct = c.relative_change != null ? (Math.abs(c.relative_change) * 100).toFixed(1) + '%' : '';
+      return `<div class="change-card">
+        <div class="change-field">${(c.field||'').replace(/_/g,' ')}</div>
+        <div class="change-ba">
+          <span class="change-val dim">${prevFmt}</span>
+          <span class="change-arr ${worsening?'worse':better?'better':''}">→</span>
+          <span class="change-val ${worsening?'worse':better?'better':''}">${curFmt}</span>
+        </div>
+        <div class="change-sig">
+          <span class="change-pct ${worsening?'worse':better?'better':''}">${pct}</span>
+          <span class="sig-tag ${sig?'high':'low'}">${sig?'SIG':'MINOR'}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>` : `<div class="empty"><div class="empty-title">No Previous Update</div><div class="empty-sub">Change comparison requires at least two updates.</div></div>`}`;
+}
+
+// ─── TAB: OBSERVE ─────────────────────────────────────────────────────────────
+function buildObserveTab(ev, observe) {
+  if (!observe) return spinner();
+  if (observe === 'loading') return spinner();
+  if (observe === 'error') return errBox('Failed to load observation plan.');
+  return `<div class="obs-panel">
+    <div class="obs-question">Information Priority Assessment</div>
+    <div class="obs-pri-row">
+      <span class="obs-pri-badge ${observe.priority}">${(observe.priority||'').toUpperCase()} PRIORITY</span>
+    </div>
+    <div class="obs-gap">${observe.information_gap || ''}</div>
+    <div class="obs-why">${observe.why_it_matters || ''}</div>
+    <div class="obs-suggestion">${observe.suggestion || ''}</div>
+    <div class="obs-disc">${observe.disclaimer || ''}</div>
+  </div>
+  <div class="inline-disc">Decision value: ${observe.decision_value || 'unknown'} — This is information prioritization only; not sensor tasking or maneuver planning.</div>`;
+}
+
+// ─── TAB: SIMULATE ────────────────────────────────────────────────────────────
+function buildSimulateTab(ev, ass) {
+  const sr = S.simResult;
+  return `<div class="sim-banner">
+    <div class="sim-q">What-If Uncertainty Simulation</div>
+    <div class="sim-sub">Adjust positional uncertainty values to see how the attention score changes. Hypothetical only — not orbital propagation.</div>
+  </div>
+  <div class="sim-fields">
+    <div class="sim-field">
+      <label>Radial Unc. (km)</label>
+      <input type="number" id="sim-rad" placeholder="${ev.radial_uncertainty_km ?? 'current'}" min="0" step="0.5"/>
+    </div>
+    <div class="sim-field">
+      <label>Along-Track Unc. (km)</label>
+      <input type="number" id="sim-atr" placeholder="${ev.along_track_uncertainty_km ?? 'current'}" min="0" step="0.5"/>
+    </div>
+    <div class="sim-field">
+      <label>Cross-Track Unc. (km)</label>
+      <input type="number" id="sim-ctr" placeholder="${ev.cross_track_uncertainty_km ?? 'current'}" min="0" step="0.5"/>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="btn-run-sim">Run Simulation</button>
+  ${sr ? buildSimResult(sr) : ''}
+  <div class="sim-disc">Simulation outputs are hypothetical only. They do not represent orbital propagation, maneuver planning, or official collision risk assessment.</div>`;
+}
+
+function buildSimResult(sr) {
+  const before = sr.before || {};
+  const after = sr.after || {};
+  const cls = clsColor(after.classification);
+  const delta = (after.score || 0) - (before.score || 0);
+  const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+  const deltaColor = delta > 0 ? 'var(--red2)' : delta < 0 ? 'var(--green)' : 'var(--text3)';
+  return `<div class="sim-compare" style="margin-top:14px">
+    <div>
+      <div class="sim-col-lbl">Before</div>
+      <div class="module"><div class="module-body" style="padding:10px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--text)">${before.score}</div>
+        <div style="font-size:.74rem;color:var(--text2)">${before.classification}</div>
+      </div></div>
+    </div>
+    <div class="sim-arrow" style="color:${deltaColor}">${deltaStr !== '0' ? deltaStr : '→'}</div>
+    <div>
+      <div class="sim-col-lbl">After (Hypothetical)</div>
+      <div class="module ${cls.toLowerCase()}" style="border-top-color:var(--${cls==='CRITICAL'?'red2':cls==='HIGH'?'orange':cls==='MONITOR'?'yellow':'green'})">
+        <div class="module-body" style="padding:10px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--${cls==='CRITICAL'?'red2':cls==='HIGH'?'orange':cls==='MONITOR'?'yellow':'green'})">${after.score}</div>
+          <div style="font-size:.74rem;color:var(--text2)">${after.classification}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sim-factors">
+    ${(sr.changed_factors||[]).map(f=>`<span class="sim-factor-tag">${f}</span>`).join('')}
+  </div>`;
+}
+
+// ─── TAB: BRIEFING ────────────────────────────────────────────────────────────
+function buildBriefingTab(ev, briefing) {
+  const audiences = ['operator','analyst','public'];
+  return `<div class="aud-row">
+    ${audiences.map(a => `<button class="aud-btn${S.briefingAudience===a?' on':''}" data-aud="${a}">${a.toUpperCase()}</button>`).join('')}
+  </div>
+  <div class="briefing-console">
+    <div class="brief-hdr">
+      <span class="brief-hdr-title">AI BRIEFING CONSOLE</span>
+      <div class="ai-row">
+        <div class="ai-dot ${S.aiStatus?.ai_provider?.class==='GraniteProvider'?'on':'warn'}"></div>
+        <span class="ai-lbl">${S.aiStatus?.ai_provider?.name || 'MOCK'}</span>
+      </div>
+    </div>
+    ${briefing && briefing !== 'loading' && briefing !== 'error'
+      ? (briefing.status === 'mock' || briefing.status === 'mock_fallback'
+          ? `<div class="brief-mock-bar">⚡ Deterministic mock response — no AI credentials configured.</div>` : '')
+      : ''}
+    <div class="brief-body">
+      ${!briefing ? `<div class="empty"><div class="empty-title">No Briefing</div><div class="empty-sub">Click an audience button above to generate a briefing.</div></div>`
+        : briefing === 'loading' ? spinner()
+        : briefing === 'error' ? errBox('Failed to generate briefing.')
+        : `${briefing.observed_facts ? `<div class="brief-sec"><div class="brief-sec-title">Observed Facts</div><div class="brief-sec-body">${briefing.observed_facts}</div></div>` : ''}
+           ${briefing.calculated_assessment ? `<div class="brief-sec"><div class="brief-sec-title">Calculated Assessment</div><div class="brief-sec-body">${briefing.calculated_assessment}</div></div>` : ''}
+           ${(briefing.interpretation || briefing.content) ? `<div class="brief-sec"><div class="brief-sec-title">Interpretation</div><div class="brief-sec-body">${briefing.interpretation || briefing.content}</div></div>` : ''}
+           ${briefing.uncertainty ? `<div class="brief-sec"><div class="brief-sec-title">Disclaimer</div><div class="brief-sec-body" style="font-size:.72rem;color:var(--text3)">${briefing.uncertainty}</div></div>` : ''}
+           ${(briefing.grounding||[]).length > 0 ? `<div class="g-tags">${briefing.grounding.map(g=>`<span class="g-tag">${g}</span>`).join('')}</div>` : ''}`}
+    </div>
+  </div>`;
+}
+
+// ─── TAB: CHAT ────────────────────────────────────────────────────────────────
+function buildChatTab(ev) {
+  const suggestions = [
+    'What is the miss distance?',
+    'Explain the attention score.',
+    'What is TCA?',
+    'Is this event escalating?',
+    'Hello',
+  ];
+  const history = S.chatHistory;
+  return `<div class="chat-shell">
+    <div class="chat-history" id="chat-history">
+      ${history.length === 0
+        ? `<div class="empty"><div class="empty-title">Chat with AI</div><div class="empty-sub">Ask questions about event ${ev?.event_id}. The AI has access to all assessment data for this event.</div></div>`
+        : history.map(m => `<div class="chat-msg ${m.role}">
+            <div class="chat-who">${m.role === 'user' ? 'YOU' : 'CONJUNCTIQ AI'}</div>
+            <div class="chat-bubble">${m.content}</div>
+            ${(m.sources||[]).length>0 ? `<div class="chat-srcs">${m.sources.map(s=>`<span class="chat-src">${s}</span>`).join('')}</div>` : ''}
+          </div>`).join('')}
+    </div>
+    <div class="chat-suggestions">
+      ${suggestions.map(s=>`<button class="chat-sug" data-sug="${s}">${s}</button>`).join('')}
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chat-input" type="text" placeholder="Ask about this conjunction event…" maxlength="2000"/>
+      <button class="chat-send" id="btn-chat-send">Send</button>
+    </div>
+  </div>`;
+}
+
+// ─── TAB: NASA ────────────────────────────────────────────────────────────────
+function buildNasaTab() {
+  const data = S.nasaData;
+  if (!data) return spinner();
+  if (data === 'loading') return spinner();
+  if (data === 'error') return errBox('Failed to load NASA/JPL data. The CNEOS API may be unavailable.');
+
+  const rows = data.data || [];
+  return `<div class="nasa-panel">
+    <div class="nasa-hdr">
+      <span class="nasa-hdr-title">NASA/JPL CNEOS Close-Approach Data</span>
+      <span class="nasa-real badge-real">REAL NASA/JPL DATA</span>
+    </div>
+    <div class="nasa-row nasa-hdr-row">
+      <span>Designation</span><span>TCA (UTC)</span><span>Miss Dist</span><span>Velocity</span><span>Uncertainty</span>
+    </div>
+    ${rows.length === 0
+      ? `<div style="padding:18px;color:var(--text2);font-size:.78rem">No close approaches found in dataset. The CNEOS API may be rate-limited or data may not be available.</div>`
+      : rows.map(r => `<div class="nasa-row">
+          <span class="nasa-des">${r.designation || r.event_id || '—'}</span>
+          <span class="nasa-mono">${r.tca ? r.tca.replace('T',' ').slice(0,16) : r.tca_raw || '—'}</span>
+          <span class="nasa-mono">${r.miss_distance_km != null ? (r.miss_distance_km/1000).toFixed(0)+'k km' : '—'}</span>
+          <span class="nasa-mono">${r.relative_velocity_km_s != null ? r.relative_velocity_km_s+' km/s' : '—'}</span>
+          <span class="nasa-mono" style="color:${r.uncertainty_flag==='high'?'var(--red2)':'var(--green)'}">${r.uncertainty_flag || '—'}</span>
+        </div>`).join('')}
+    <div class="nasa-disc">
+      Source: ${data.source || 'NASA/JPL CNEOS'} ·
+      <a href="${data.url || 'https://ssd-api.jpl.nasa.gov/cad.api'}" style="color:var(--cyan)" target="_blank">${data.url || ''}</a><br>
+      ${data.disclaimer || ''}<br>
+      <strong style="color:var(--cyan)">REAL DATA</strong> — ${data.count || rows.length} close approaches returned.
+    </div>
+  </div>`;
+}
+
+// ─── EVENT LISTENERS ──────────────────────────────────────────────────────────
+function attachListeners() {
+  // Event slots
+  document.querySelectorAll('.ev-slot').forEach(slot => {
+    slot.addEventListener('click', () => {
+      const id = slot.dataset.id;
+      selectEvent(id);
+    });
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      S.tab = t.dataset.tab;
+      if (S.tab === 'nasa' && !S.nasaData) loadNasaData();
+      if (S.selected) {
+        const ev = S.events.find(e => e.event?.event_id === S.selected)?.event;
+        if (ev) ensureTabData(ev);
+      }
+      render();
+    });
+  });
+
+  // Demo button
+  const demoBtn = el('btn-demo');
+  if (demoBtn) demoBtn.addEventListener('click', () => {
+    S.demo = !S.demo;
+    S.demoStep = 0;
+    if (S.demo) startDemo();
+    render();
+  });
+
+  // Demo close
+  const demoClose = el('btn-demo-close');
+  if (demoClose) demoClose.addEventListener('click', () => {
+    S.demo = false;
+    render();
+  });
+
+  // Audience buttons
+  document.querySelectorAll('.aud-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      S.briefingAudience = b.dataset.aud;
+      if (S.selected) {
+        const key = S.selected;
+        S.cache[key] = S.cache[key] || {};
+        S.cache[key].briefing = 'loading';
+        render();
+        loadBriefing(key, S.briefingAudience);
+      }
+    });
+  });
+
+  // Simulate run
+  const simBtn = el('btn-run-sim');
+  if (simBtn) simBtn.addEventListener('click', () => {
+    if (!S.selected) return;
+    const rad = parseFloat(el('sim-rad')?.value) || null;
+    const atr = parseFloat(el('sim-atr')?.value) || null;
+    const ctr = parseFloat(el('sim-ctr')?.value) || null;
+    runSimulation(S.selected, rad, atr, ctr);
+  });
+
+  // Chat send
+  const chatSend = el('btn-chat-send');
+  const chatInput = el('chat-input');
+  if (chatSend && chatInput) {
+    chatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+    });
+  }
+
+  // Chat suggestions
+  document.querySelectorAll('.chat-sug').forEach(b => {
+    b.addEventListener('click', () => {
+      if (chatInput) chatInput.value = b.dataset.sug;
+      sendChat();
+    });
+  });
+
+  // Scroll chat to bottom
+  const hist = el('chat-history');
+  if (hist) hist.scrollTop = hist.scrollHeight;
+}
+
+// ─── DATA LOADING ─────────────────────────────────────────────────────────────
+async function loadEvents() {
+  try {
+    const items = await api('/api/events');
+    // For each item, fetch changes to get trend
+    S.events = items;
+    // Load changes in parallel for trend display
+    await Promise.allSettled(items.map(async item => {
+      const id = item.event?.event_id;
+      if (!id) return;
+      try {
+        const ch = await api(`/api/events/${id}/changes`);
+        item._trend = ch.status;
+        S.cache[id] = S.cache[id] || {};
+        S.cache[id].changes = ch;
+        S.cache[id]._trend = ch.status;
+      } catch { item._trend = 'unknown'; }
+    }));
+    render();
+  } catch (err) {
+    console.error('Failed to load events:', err);
+    S.events = [];
+    el('app').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px">
+        <div class="err-offline">
+          <div class="err-offline-title">CONJUNCTIQ OFFLINE</div>
+          <div class="err-offline-sub">Cannot connect to backend at ${BASE || window.location.origin}.<br>
+          Start the server: <code style="color:var(--amber)">python -m uvicorn app.main:app --port 8001</code></div>
+        </div>
+      </div>`;
+  }
+}
+
+async function loadStatus() {
+  try {
+    S.aiStatus = await api('/api/status');
+  } catch {
+    S.aiStatus = { ai_provider: { class: 'UnavailableProvider', name: 'unavailable' }, data_mode: 'demo' };
+  }
+}
+
+function selectEvent(id) {
+  S.selected = id;
+  S.tab = 'overview';
+  S.simResult = null;
+  S.chatHistory = [];
+  const ev = S.events.find(e => e.event?.event_id === id)?.event;
+  if (ev) ensureTabData(ev);
+  // Update demo step
+  if (S.demo && id === 'DEMO-003') S.demoStep = Math.max(S.demoStep, 0);
+  render();
+}
+
+function ensureTabData(ev) {
+  const id = ev.event_id;
+  S.cache[id] = S.cache[id] || {};
+
+  // Always fetch evidence and observe on select
+  if (!S.cache[id].evidence) {
+    S.cache[id].evidence = 'loading';
+    loadEvidence(id);
+  }
+  if (!S.cache[id].observe) {
+    S.cache[id].observe = 'loading';
+    loadObserve(id);
+  }
+  // Changes should already be loaded from loadEvents
+}
+
+async function loadEvidence(id) {
+  try {
+    const data = await api(`/api/events/${id}/evidence`);
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].evidence = data;
+    if (S.selected === id && S.tab === 'evidence') render();
+  } catch {
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].evidence = 'error';
+    if (S.selected === id && S.tab === 'evidence') render();
+  }
+}
+
+async function loadObserve(id) {
+  try {
+    const data = await api(`/api/events/${id}/next-observation`);
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].observe = data;
+    if (S.selected === id && S.tab === 'observe') render();
+  } catch {
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].observe = 'error';
+    if (S.selected === id && S.tab === 'observe') render();
+  }
+}
+
+async function loadBriefing(id, audience) {
+  try {
+    const data = await api(`/api/events/${id}/briefing`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({audience}),
+    });
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].briefing = data;
+    if (S.selected === id && S.tab === 'briefing') render();
+  } catch {
+    S.cache[id] = S.cache[id] || {};
+    S.cache[id].briefing = 'error';
+    if (S.selected === id && S.tab === 'briefing') render();
+  }
+}
+
+async function loadNasaData() {
+  S.nasaData = 'loading';
+  if (S.tab === 'nasa') render();
+  try {
+    S.nasaData = await api('/api/nasa/approaches');
+    if (S.tab === 'nasa') render();
+  } catch {
+    S.nasaData = 'error';
+    if (S.tab === 'nasa') render();
+  }
+}
+
+async function runSimulation(id, rad, atr, ctr) {
+  const btn = el('btn-run-sim');
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  try {
+    const body = {};
+    if (rad != null) body.radial_uncertainty_km = rad;
+    if (atr != null) body.along_track_uncertainty_km = atr;
+    if (ctr != null) body.cross_track_uncertainty_km = ctr;
+    S.simResult = await api(`/api/events/${id}/simulate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (S.demo) S.demoStep = Math.max(S.demoStep, 3);
+    render();
+  } catch (err) {
+    alert('Simulation failed: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Run Simulation'; }
+  }
+}
+
+async function sendChat() {
+  const input = el('chat-input');
+  if (!input) return;
+  const q = input.value.trim();
+  if (!q || !S.selected) return;
+
+  input.value = '';
+  const btn = el('btn-chat-send');
+  if (btn) btn.disabled = true;
+
+  S.chatHistory.push({role: 'user', content: q});
+  render();
+
+  try {
+    const resp = await api(`/api/events/${S.selected}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({question: q}),
+    });
+    const answer = resp.answer?.answer || resp.answer || '(no response)';
+    const sources = resp.context_sources?.map(s => s.title) || [];
+    S.chatHistory.push({role: 'assistant', content: answer, sources});
+    if (S.demo) S.demoStep = Math.max(S.demoStep, 5);
+    render();
+  } catch (err) {
+    S.chatHistory.push({role: 'assistant', content: `Error: ${err.message}`});
+    render();
+  }
+  if (btn) btn.disabled = false;
+}
+
+// ─── DEMO MODE ────────────────────────────────────────────────────────────────
+function startDemo() {
+  // Auto-select DEMO-003 if available
+  const demo3 = S.events.find(e => e.event?.event_id === 'DEMO-003');
+  if (demo3) {
+    selectEvent('DEMO-003');
+  } else if (S.events.length > 0) {
+    selectEvent(S.events[0].event?.event_id);
+  }
+}
+
+// ─── BOOT ──────────────────────────────────────────────────────────────────────
+(async function boot() {
+  render(); // Show loading skeleton
+  await Promise.allSettled([loadStatus(), loadEvents()]);
+  // If no event selected, pick first critical or first event
+  if (!S.selected && S.events.length > 0) {
+    const crit = S.events.find(e => e.assessment?.classification?.includes('CRITICAL'));
+    // Don't auto-select — let user pick from sidebar
+  }
+  render();
+})();
+</script>
+</body>
+</html>

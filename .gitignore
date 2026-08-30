@@ -1,0 +1,24 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+*.db
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite / React
+.eslintcache
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db

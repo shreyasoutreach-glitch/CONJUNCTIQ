@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0a0c10" />
+    <title>ConjunctIQ ?" Orbital Encounter Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      const logError = (msg) => {
+        const el = document.createElement("div");
+        el.style = "color:red;font-size:16px;z-index:9999;position:relative;background:black;padding:10px;";
+        el.innerText = msg;
+        document.body.appendChild(el);
+      };
+      window.onerror = (msg, url, line, col, error) => logError(msg + " at " + line + ":" + col);
+      window.addEventListener("unhandledrejection", (e) => logError(e.reason));
+      const oldError = console.error;
+      console.error = (...args) => {
+        logError(args.join(" "));
+        oldError(...args);
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

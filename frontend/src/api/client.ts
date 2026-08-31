@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 // API client — all backend communication goes through here
 import type {
   EventListItem,
@@ -15,7 +16,7 @@ import type {
   EventDetail,
 } from "./types";
 
-const BASE = "/api";
+const BASE = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   const resp = await fetch(`${BASE}${url}`, {
@@ -58,5 +59,7 @@ export const api = {
   getResearchTools: () => fetchJSON<any>("/research/tools"),
   sendResearchChat: (messages: {role: string, content: string}[]) => fetchJSON<any>("/research/chat", { method: "POST", body: JSON.stringify({ messages }) }),
 };
+
+
 
 

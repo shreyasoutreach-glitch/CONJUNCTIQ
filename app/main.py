@@ -16,10 +16,17 @@ app.include_router(router)
 app.include_router(research_router)
 
 # Serve the frontend SPA
-_FRONTEND = Path(__file__).parent.parent / "frontend"
+_FRONTEND = Path(__file__).parent.parent / "frontend" / "dist"
 if _FRONTEND.exists():
-    app.mount("/static", StaticFiles(directory=str(_FRONTEND)), name="static")
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND / "assets")), name="assets")
 
     @app.get("/", include_in_schema=False)
     def index():
+        return FileResponse(str(_FRONTEND / "index.html"))
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def catch_all(full_path: str):
+        if full_path.startswith("api") or full_path.startswith("assets"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not found")
         return FileResponse(str(_FRONTEND / "index.html"))

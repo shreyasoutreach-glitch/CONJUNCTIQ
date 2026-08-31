@@ -47,7 +47,7 @@ export default function PersistentAIPanel({ view, eventId, assessment }: { view:
     }
   }, [researchMsgs, eventMsgs, globalMsgs, loading, view, eventId]);
 
-  const activeMessages = view === "research" ? researchMsgs 
+  const activeMessages = (view === "research" || view === "economics") ? researchMsgs 
                        : view === "event" ? (eventId ? (eventMsgs[eventId] || []) : [])
                        : globalMsgs;
 
@@ -58,13 +58,13 @@ export default function PersistentAIPanel({ view, eventId, assessment }: { view:
     setInput("");
     setLoading(true);
 
-    if (view === "research") {
+    if (view === "research" || view === "economics") {
       const newMsgs = [...researchMsgs, { role: "user" as const, content: query }];
       setResearchMsgs(newMsgs);
       try {
         const chatApiMsgs = newMsgs.map(m => ({ role: m.role, content: m.content }));
         const result = await api.sendResearchChat(chatApiMsgs);
-        setResearchMsgs(prev => [...prev, { role: "assistant", content: result.answer, tool_calls: result.tool_calls, sources: result.sources }]);
+        setResearchMsgs(prev => [...prev, { role: "assistant", content: result.answer || "No response.", tool_calls: result.tool_calls, sources: result.sources }]);
       } catch (e: any) {
         setResearchMsgs(prev => [...prev, { role: "assistant", content: "Error connecting to Research API: " + e.message }]);
       }
@@ -93,19 +93,21 @@ export default function PersistentAIPanel({ view, eventId, assessment }: { view:
     setLoading(false);
   };
 
-  const contextTitle = view === "event" && eventId ? `Context: ${eventId}` : view === "research" ? "Context: Astronomy Research" : "Context: Command Center";
+  const contextTitle = view === "event" && eventId ? `Context: ${eventId}` : view === "research" ? "Context: Astronomy Research" : view === "economics" ? "Context: Space Economics" : "Context: Command Center";
 
   return (
     <div className="persistent-ai">
       
       {/* HEADER */}
-      <div className="ai-header">
-        <div className="ai-brand">
-          CONJUNCTIQ AI
-          <div className="status-dot" style={{ width: 6, height: 6 }}></div>
-          <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 400 }}>Online</span>
+      <div className="ai-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+          <div className="ai-brand">CONJUNCTIQ AI</div>
+          <div className="status-indicator">
+            <div className="status-dot"></div>
+            ONLINE
+          </div>
         </div>
-        <div className="ai-context">{contextTitle}</div>
+        <div className="ai-context" style={{ textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500, fontSize: "11px" }}>{contextTitle}</div>
       </div>
 
       {/* CHAT LOG */}
@@ -167,4 +169,6 @@ export default function PersistentAIPanel({ view, eventId, assessment }: { view:
     </div>
   );
 }
+
+
 

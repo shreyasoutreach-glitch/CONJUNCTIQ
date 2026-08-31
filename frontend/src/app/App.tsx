@@ -1,12 +1,14 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useConjunctIQ } from "../hooks/useConjunctIQ";
 import StatusStrip from "../workstation/StatusStrip";
 import CommandCenter from "../workstation/CommandCenter";
 import EventDashboard from "../workstation/EventDashboard";
 import ResearchDashboard from "../ai/ResearchDashboard";
+import SpaceEconomicsDashboard from "../workstation/SpaceEconomicsDashboard";
 import PersistentAIPanel from "../workstation/PersistentAIPanel";
+import ErrorBoundary from "./ErrorBoundary";
 
-export type ViewState = "command" | "event" | "research";
+export type ViewState = "command" | "event" | "research" | "economics";
 
 export default function App() {
   const {
@@ -61,8 +63,8 @@ export default function App() {
       <div className="cockpit-workspace">
         
         {/* CENTER WORKSTATION (Left + Center logical areas) */}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", minHeight: 0 }}>
-          {view === "research" ? (
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", minHeight: 0 }}><ErrorBoundary fallbackName="Main Workstation">
+          {view === "economics" ? (<SpaceEconomicsDashboard />) : view === "research" ? (
             <ResearchDashboard />
           ) : view === "command" ? (
             <CommandCenter 
@@ -81,12 +83,14 @@ export default function App() {
               onBack={handleBackToCommand}
             />
           )}
+        </ErrorBoundary>
         </div>
 
-        {/* RIGHT: PERMANENT AI MONITOR */}
-        <PersistentAIPanel view={view} eventId={actualSelectedEvent ? actualSelectedEvent.event.event_id : null} assessment={assessment} />
+        {/* RIGHT: PERMANENT AI MONITOR */}<ErrorBoundary fallbackName="Persistent AI"><PersistentAIPanel view={view} eventId={actualSelectedEvent ? actualSelectedEvent.event.event_id : null} assessment={assessment} /></ErrorBoundary>
         
       </div>
     </div>
   );
 }
+
+

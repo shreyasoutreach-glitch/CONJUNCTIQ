@@ -24,9 +24,9 @@ export default function StatusStrip({ status, summary, view, setView }: Props) {
       
       <div className="topbar-left">
         <div className="topbar-brand">CONJUNCTIQ</div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="status-indicator">
           <div className="status-dot"></div>
-          <div className="status-text">{status?.service ? "System Online" : "Connecting..."}</div>
+          {status?.service ? "SYSTEM ONLINE" : "CONNECTING..."}
         </div>
       </div>
 
@@ -44,6 +44,12 @@ export default function StatusStrip({ status, summary, view, setView }: Props) {
           >
             ASTRONOMY RESEARCH
           </button>
+          <button 
+            className={`seg-nav-btn ${view === "economics" ? "active" : ""}`}
+            onClick={() => setView("economics")}
+          >
+            SPACE ECONOMICS
+          </button>
         </div>
       </div>
 
@@ -55,7 +61,7 @@ export default function StatusStrip({ status, summary, view, setView }: Props) {
             <div className="topbar-stat warning"><span>{summary.escalating_events}</span> ESCALATING</div>
           </>
         )}
-        <div className="topbar-stat" style={{ fontFamily: "var(--font-mono)" }}>{time}</div>
+        <div className="topbar-stat"><span>{time}</span></div>
       </div>
       
     </div>

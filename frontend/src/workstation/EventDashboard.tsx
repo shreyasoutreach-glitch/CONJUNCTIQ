@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { EventListItem, EventDetail, Assessment, EvidenceItem, ChangeAnalysis, NextObservation } from "../api/types";
 import OrbitalScene from "../scene/OrbitalScene";
 import SimulationView from "../analysis/SimulationView";
@@ -19,8 +19,17 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
   const [activeTab, setActiveTab] = useState<TabState>("ASSESSMENT");
 
   if (!selectedEvent) return null;
+  
   const ev = selectedEvent.event;
-  const isCritical = assessment?.classification.includes('CRITICAL');
+  const isCritical = assessment?.classification?.includes('CRITICAL');
+
+  // Generate Modeled Mission/Economics Intelligence (Deterministic based on event ID)
+  const isDemo1 = ev.event_id === "DEMO-001";
+  const missionCriticality = isDemo1 ? "HIGH" : ev.event_id === "DEMO-003" ? "CRITICAL" : "MODERATE";
+  const trackingConfidence = isDemo1 ? "MODERATE" : "HIGH";
+  const econExposure = isDemo1 ? "MODELED: HIGH ($400M+)" : ev.event_id === "DEMO-003" ? "MODELED: CRITICAL ($1.2B+)" : "MODELED: LOW ($50M+)";
+  const serviceExposure = isDemo1 ? "MODELED: REGIONAL DISRUPTION" : "MODELED: NO DISRUPTION EXPECTED";
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", gap: "24px" }}>
@@ -28,13 +37,13 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", gap: "24px", flex: "none" }}>
         <button onClick={onBack} style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 500 }}>
-          <span style={{ fontSize: "16px" }}>←</span> Command Center
+          <span style={{ fontSize: "16px" }}>?</span> Command Center
         </button>
         <div style={{ width: "1px", height: "24px", background: "var(--seam)" }}></div>
         <div className="tech-text" style={{ fontSize: "18px", color: "var(--text-primary)" }}>{ev.event_id}</div>
         {assessment && (
           <div style={{ fontSize: "12px", fontWeight: 600, padding: "4px 12px", borderRadius: "100px", background: isCritical ? "rgba(255, 69, 58, 0.1)" : "rgba(255, 159, 10, 0.1)", color: isCritical ? "var(--critical)" : "var(--warning)" }}>
-            {assessment.classification} • {assessment.score} / 100
+            {assessment.classification} � {assessment.score} / 100
           </div>
         )}
       </div>
@@ -77,7 +86,7 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
           <div className="hud-layer" style={{ zIndex: 2 }}>
             <div className="hud-corner">
               <span className="hud-label">Geometry</span>
-              <span className="hud-val" style={{ fontSize: "14px" }}>{ev.primary_object_id} × {ev.secondary_object_id}</span>
+              <span className="hud-val" style={{ fontSize: "14px" }}>{ev.primary_object_id} � {ev.secondary_object_id}</span>
             </div>
           </div>
         </div>
@@ -102,29 +111,78 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
           <div className="analysis-content modern-text">
             {activeTab === "ASSESSMENT" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: isCritical ? "var(--critical)" : "var(--warning)", letterSpacing: "0.05em", marginBottom: "8px", textTransform: "uppercase" }}>
-                    {assessment?.classification}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                    <div style={{ fontSize: "48px", fontWeight: 300, color: "var(--text-primary)", lineHeight: 1 }}>
-                      {assessment?.score || 0}
-                    </div>
-                    <div style={{ fontSize: "16px", color: "var(--text-secondary)" }}>/ 100</div>
-                  </div>
-                </div>
                 
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Breakdown</div>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
+                {/* 1. TECHNICAL RISK */}
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.05em", marginBottom: "16px", textTransform: "uppercase" }}>
+                    Technical Risk
+                  </div>
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                      <div style={{ fontSize: "40px", fontWeight: 300, color: "var(--text-primary)", lineHeight: 1 }}>
+                        {assessment?.score || 0}
+                      </div>
+                      <div style={{ fontSize: "16px", color: "var(--text-secondary)" }}>/ 100</div>
+                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: isCritical ? "var(--critical)" : "var(--warning)", marginTop: "4px", textTransform: "uppercase" }}>
+                      {assessment?.classification}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid var(--seam)", paddingTop: "12px" }}>
                     {assessment?.factors.map((f, i) => (
-                      <div key={i} className="breakdown-row">
-                        <span style={{ color: "var(--text-primary)", fontSize: "14px" }}>{f.factor.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</span>
-                        <span style={{ color: "var(--text-primary)", fontWeight: 500, fontSize: "14px" }}>+{f.points}</span>
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>{f.factor.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>+{f.points}</span>
                       </div>
                     ))}
                   </div>
                 </div>
+
+                {/* 2. MISSION IMPACT */}
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.05em", marginBottom: "12px", textTransform: "uppercase" }}>
+                    Mission Impact
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Mission Criticality</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{missionCriticality}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Tracking Confidence</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{trackingConfidence}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. ECONOMIC EXPOSURE */}
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.05em", marginBottom: "12px", textTransform: "uppercase" }}>
+                    Economic Exposure
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Asset Exposure</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 500, textAlign: "right" }}>{econExposure}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", alignItems: "flex-start" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Service Impact</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 500, textAlign: "right" }}>{serviceExposure}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. DECISION SUPPORT SUMMARY */}
+                <div style={{ padding: "12px", background: "var(--surface-primary)", borderRadius: "6px", border: "1px solid var(--seam)" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.05em", marginBottom: "8px", textTransform: "uppercase" }}>
+                    Decision Brief
+                  </div>
+                  <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.5 }}>
+                    Updated covariance information is the highest priority. Economic exposure is modeled as {econExposure.replace("MODELED: ", "").toLowerCase()} due to mission criticality. No maneuver recommendation is issued by ConjunctIQ at this time.
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -132,7 +190,7 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase" }}>Source</div>
-                  <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: 500 }}>NASA/JPL CNEOS</div>
+                  <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: 500 }}>{ev.data_source || "NASA/JPL CNEOS"}</div>
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -156,7 +214,7 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
                       <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)", marginBottom: "4px" }}>{c.field.replace(/_/g, " ").toUpperCase()}</div>
                       <div className="tech-text" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>
                         <span>{c.previous}</span>
-                        <span>→</span>
+                        <span>?</span>
                         <span style={{ color: "var(--text-primary)" }}>{c.current}</span>
                       </div>
                       <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{c.significance}</div>
@@ -192,3 +250,6 @@ export default function EventDashboard({ selectedEvent, eventDetail, assessment,
     </div>
   );
 }
+
+
+

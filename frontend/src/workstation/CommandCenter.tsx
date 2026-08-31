@@ -1,4 +1,4 @@
-﻿import { EventListItem } from "../api/types";
+import { EventListItem } from "../api/types";
 import OrbitalScene from "../scene/OrbitalScene";
 
 interface Props {
@@ -39,26 +39,35 @@ export default function CommandCenter({ events, defaultEvent, onSelectEvent }: P
             const status = item.assessment?.classification || statusBadge(item.assessment?.score || 0);
             const isSelected = defaultEvent?.event.event_id === item.event.event_id;
             const statusClass = status.includes('CRITICAL') ? 'critical' : status.includes('HIGH') || status.includes('WARNING') ? 'warning' : 'success';
+            
+            // Render small status indicator dot
+            const dotColor = statusClass === 'critical' ? 'var(--critical)' : statusClass === 'warning' ? 'var(--warning)' : 'var(--success)';
 
             return (
               <div 
                 key={item.event.event_id} 
-                className={`event-card ${isSelected ? 'active' : ''}`}
+                className={`event-card ${isSelected ? 'selected' : ''}`}
                 onClick={() => onSelectEvent(item.event.event_id)}
                 style={{ flex: "none" }}
               >
                 <div className="ec-header">
-                  <span className="ec-id">{item.event.event_id}</span>
-                  <span className={`ec-status ${statusClass}`}>{status.includes('CRITICAL') ? 'CRITICAL' : status.includes('HIGH') ? 'WARNING' : 'LOW'}</span>
-                </div>
-                <div className="ec-objects">{item.event.primary_object_id} × {item.event.secondary_object_id}</div>
-                
-                <div className="ec-body">
-                  <div className={`ec-score ${statusClass}`}>
-                    {item.assessment?.score || 0}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: dotColor }}></div>
+                    <span className="ec-id">{item.event.event_id}</span>
                   </div>
-                  <div className="ec-tca">
-                    {formatTCA(item.event.time_of_closest_approach ?? item.event.tca)}
+                  <span className="ec-tca">{formatTCA(item.event.time_of_closest_approach ?? item.event.tca)}</span>
+                </div>
+                
+                <div className="ec-geometry">{item.event.primary_object_id} x {item.event.secondary_object_id}</div>
+                
+                <div className="ec-metrics">
+                  <div className="ec-metric">
+                    <span className="ec-m-label">Score</span>
+                    <span className={`ec-m-val ${statusClass}`}>{item.assessment?.score || 0}</span>
+                  </div>
+                  <div className="ec-metric">
+                    <span className="ec-m-label">Probability</span>
+                    <span className="ec-m-val">{item.event.collision_probability ? item.event.collision_probability.toExponential(2) : "---"}</span>
                   </div>
                 </div>
               </div>
@@ -75,30 +84,30 @@ export default function CommandCenter({ events, defaultEvent, onSelectEvent }: P
         
         {/* HUD FLOATING TEXT */}
         <div className="hud-layer">
-          <div className="hud-corner" style={{ position: "absolute", top: "32px", left: "32px" }}>
+          <div className="hud-corner" style={{ position: "absolute", top: "24px", left: "24px" }}>
             <span className="hud-val">{defaultEvent ? defaultEvent.event.event_id : "NO TARGET"}</span>
             {defaultEvent && (
-              <span className={`hud-label ${defaultEvent.assessment?.classification.includes('CRITICAL') ? 'critical' : 'warning'}`} style={{ color: defaultEvent.assessment?.classification.includes('CRITICAL') ? 'var(--critical)' : 'var(--warning)', marginTop: "4px" }}>
-                {defaultEvent.assessment?.classification}
+              <span className="hud-label" style={{ color: defaultEvent.assessment?.classification?.includes('CRITICAL') ? 'var(--critical)' : 'var(--warning)' }}>
+                {defaultEvent.event.primary_object_id} x {defaultEvent.event.secondary_object_id}
               </span>
             )}
           </div>
           
           {defaultEvent && (
             <>
-              <div className="hud-corner" style={{ position: "absolute", bottom: "32px", left: "32px", gap: "16px", flexDirection: "row" }}>
+              <div className="hud-corner" style={{ position: "absolute", bottom: "24px", left: "24px", gap: "24px", flexDirection: "row" }}>
                 <div>
                   <div className="hud-label">MISS DISTANCE</div>
                   <div className="hud-val">{defaultEvent.event.miss_distance_km?.toFixed(3) || "---"} km</div>
                 </div>
-                <div style={{ marginLeft: "32px" }}>
+                <div>
                   <div className="hud-label">COLLISION PROBABILITY</div>
                   <div className="hud-val">{defaultEvent.event.collision_probability?.toExponential(2) || "---"}</div>
                 </div>
               </div>
 
-              <div className="hud-corner" style={{ position: "absolute", bottom: "32px", right: "32px", textAlign: "right" }}>
-                <div className="hud-label">TCA</div>
+              <div className="hud-corner" style={{ position: "absolute", bottom: "24px", right: "24px", textAlign: "right" }}>
+                <div className="hud-label">TIME OF CLOSEST APPROACH (TCA)</div>
                 <div className="hud-val">{new Date(defaultEvent.event.time_of_closest_approach ?? defaultEvent.event.tca).toUTCString().replace(" GMT", " UTC")}</div>
               </div>
             </>
@@ -109,3 +118,4 @@ export default function CommandCenter({ events, defaultEvent, onSelectEvent }: P
     </div>
   );
 }
+

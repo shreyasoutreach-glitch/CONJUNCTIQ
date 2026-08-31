@@ -622,9 +622,20 @@ def get_provider(name: str = "mock") -> LLMProvider:
 
     if name == "mock":
         return MockProvider()
+    
+    if name == "research":
+        # In the future, this can be configured to use a different key or model specifically for research
+        if not settings.llm_api_key:
+            return MockProvider()
+        return OpenAICompatibleProvider(
+            api_key=settings.llm_api_key,
+            base_url=settings.openai_base_url,
+            model=settings.openai_model,
+        )
 
     log.warning(
         "Unknown AI provider '%s'; falling back to mock provider.",
         name,
     )
     return MockProvider() 
+

@@ -1,10 +1,22 @@
-﻿# ConjunctIQ
+# ConjunctIQ
 
 **From orbital alerts to operational clarity.** ConjunctIQ is a decision-support platform designed to transform raw orbital conjunction data into clear, actionable operational intelligence. It integrates deterministic orbital physics analysis, space economics modeling, and an intelligent autonomous assistant to help satellite operators triage and manage orbital close approaches (conjunctions).
 
 ---
 
 ## Features & Architecture
+
+
+---
+
+## ?? Cloud Deployment Status
+
+**Notice:** The live Vercel deployment is currently running in a **fully degraded Mock/Demo mode**. 
+
+During the final configuration phase, we were unable to retrieve the required IBM Cloud / Watsonx ID credentials (due to identity verification / credit card requirements). Without these credentials, the production Python backend could not be securely hosted. 
+
+To ensure the frontend UI remains fully accessible for portfolio and judging purposes, the React client has been configured to intercept failed backend calls and inject deterministic demo data. The UI, visualizations, and charts are fully functional, but the underlying data is simulated.
+
 
 ### 1. Command Center & Telemetry Integration
 - **Real-time Event Ingestion:** Processes simulated CSV/JSON data into a highly structured SQLite backend via Pydantic validation.

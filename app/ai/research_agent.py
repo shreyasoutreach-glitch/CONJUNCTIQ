@@ -98,8 +98,10 @@ class ResearchAgent:
                 return "An exoplanet is any planet that orbits a star outside our solar system."
             if "explain astrophysics" in last_msg_lower or "what is astrophysics" in last_msg_lower:
                 return "Astrophysics is a branch of space science that applies the laws of physics and chemistry to explain the birth, life and death of stars, planets, galaxies, nebulae and other objects in the universe."
-            if "how could satellite downtime affect revenue" in last_msg_lower:
-                return "Satellite downtime halts revenue generation immediately. Depending on the service (e.g., broadband, Earth observation, GPS), a single day of outage can cost hundreds of thousands of dollars in SLA penalties and lost capacity."
+            if "how could satellite downtime affect revenue" in last_msg_lower or "30 days of downtime mean economically" in last_msg_lower or "mean economically for this asset" in last_msg_lower:
+                return "Satellite downtime halts revenue generation immediately. Depending on the service (e.g., broadband, Earth observation, GPS), a single day of outage can cost hundreds of thousands of dollars in SLA penalties and lost capacity. 30 days of downtime could result in millions of dollars in lost revenue and permanent loss of customer trust."
+            if "why is this event critical" in last_msg_lower:
+                return "This event is critical due to a combination of high collision probability, escalating uncertainty trends, and a significantly reduced miss distance compared to baseline safety thresholds."
             if "which assumptions have the greatest effect on the economic exposure" in last_msg_lower or "greatest effect on the economic" in last_msg_lower:
                 return "The greatest sensitivity lies in the combination of Replacement Cost (Capex) and Revenue at Risk (Opex). A highly lucrative satellite has a massive exposure even if its physical replacement cost is low, especially if downtime stretches into years."
             if "what is a near earth object" in last_msg_lower:
